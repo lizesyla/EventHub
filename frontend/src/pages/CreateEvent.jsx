@@ -84,60 +84,164 @@ function CreateEvent() {
     }
   }
 
-  return (
-    <div style={{ padding: '20px', display: 'flex', gap: '40px' }}>
-      <div style={{ flex: 1, maxWidth: '400px', border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
-        <h2>Krijo Event të Ri</h2>
+
+  const colors = {
+    bgDark: '#0f0c1b',
+    cardBg: '#1a162e',
+    inputBg: '#252142',
+    textMain: '#ffffff',
+    textMuted: '#b3b0cd',
+    accent: '#8b5cf6', // Neon Violet / Purple
+    accentHover: '#7c3aed',
+    border: '#2d294e',
+    error: '#ef4444'
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.inputBg,
+    color: colors.textMain,
+    fontSize: '14px',
+    marginTop: '6px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.2s'
+  }
+
+return (
+    <div style={{ 
+      backgroundColor: colors.bgDark, 
+      color: colors.textMain, 
+      minHeight: '100vh', 
+      padding: '40px 20px',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '40px',
+      flexWrap: 'wrap'
+    }}>
+      
+      {/* 1. KARTA E FORMËS */}
+      <div style={{ 
+        flex: '1', 
+        minWidth: '320px', 
+        maxWidth: '450px', 
+        backgroundColor: colors.cardBg, 
+        padding: '30px', 
+        borderRadius: '16px', 
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+        border: `1px solid ${colors.border}`,
+        height: 'fit-content'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '8px', fontWeight: '700', color: colors.textMain }}>Krijo Event</h2>
+        <p style={{ color: colors.textMuted, fontSize: '14px', marginBottom: '24px' }}>Plotësoni detajet e mëposhtme për të publikuar eventin tuaj të ri.</p>
+        
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '12px' }}>
-            <label>Titulli: *</label><br />
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-            {errors.title && <span style={{ color: 'red', fontSize: '12px' }}>{errors.title}</span>}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: colors.textMuted }}>Titulli i Eventit *</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="P.sh. Hackathon 2026" style={inputStyle} />
+            {errors.title && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.title}</span>}
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label>Përshkrimi:</label><br />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+
+          <div style={{ marginBottom: '18px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: colors.textMuted }}>Përshkrimi</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tregoni më shumë rreth organizimit..." style={{ ...inputStyle, height: '100px', resize: 'vertical' }} />
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label>Data dhe Koha: *</label><br />
-            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-            {errors.date && <span style={{ color: 'red', fontSize: '12px' }}>{errors.date}</span>}
+
+          <div style={{ marginBottom: '18px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: colors.textMuted }}>Data dhe Koha *</label>
+            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
+            {errors.date && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label>Lokacioni: *</label><br />
-            <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-            {errors.location && <span style={{ color: 'red', fontSize: '12px' }}>{errors.location}</span>}
+
+          <div style={{ marginBottom: '18px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: colors.textMuted }}>Lokacioni *</label>
+            <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="P.sh. Amfiteatri i FIEK" style={inputStyle} />
+            {errors.location && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.location}</span>}
           </div>
-          <div style={{ marginBottom: '20px' }}>
-            <label>Banner Image:</label><br />
-            <input type="file" accept="image/*" onChange={(e) => setBanner(e.target.files[0] || null)} />
-            {errors.banner && <span style={{ color: 'red', fontSize: '12px' }}>{errors.banner}</span>}
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: colors.textMuted }}>Kopertina (Banner Image)</label>
+            <div style={{
+              border: `2px dashed ${colors.border}`,
+              padding: '15px',
+              borderRadius: '8px',
+              marginTop: '6px',
+              backgroundColor: colors.bgDark,
+              textAlign: 'center',
+              cursor: 'pointer'
+            }}>
+              <input type="file" accept="image/*" onChange={(e) => setBanner(e.target.files[0] || null)} style={{ color: colors.textMuted, fontSize: '13px' }} />
+            </div>
+            {errors.banner && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.banner}</span>}
           </div>
-          <button type="submit" style={{ padding: '10px 20px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', width: '100%' }}>
-            Krijo Eventin
+
+          <button type="submit" style={{ 
+            width: '100%', 
+            padding: '14px', 
+            backgroundColor: colors.accent, 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '8px', 
+            fontSize: '16px', 
+            fontWeight: '600', 
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+            boxShadow: `0 4px 14px rgba(139, 92, 246, 0.4)`
+          }}>
+            Publiko Eventin
           </button>
         </form>
       </div>
 
-      <div style={{ flex: 2 }}>
-        <h2>Event Board</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      {/* 2. EVENT BOARD (KARTELAT E REJA) */}
+      <div style={{ flex: '2', minWidth: '350px', maxWidth: '800px' }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '8px', fontWeight: '700' }}>Event Board</h2>
+        <p style={{ color: colors.textMuted, fontSize: '14px', marginBottom: '24px' }}>Lista e të gjitha ngjarjeve aktive të krijuara brenda platformës.</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {events.length === 0 ? (
-            <p>Nuk ka asnjë event të krijuar ende.</p>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', backgroundColor: colors.cardBg, borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+              <p style={{ color: colors.textMuted, margin: 0 }}>Nuk ka asnjë event të krijuar ende. Bodard-i është i zbrazët.</p>
+            </div>
           ) : (
             events.map(event => (
-              <div key={event.id} style={{ border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden' }}>
-                {event.banner_url && <img src={event.banner_url} alt="Banner" style={{ width: '100%', height: '150px', objectFit: 'cover' }} />}
-                <div style={{ padding: '15px' }}>
-                  <h3>{event.title}</h3>
-                  <p style={{ fontSize: '13px', color: '#666' }}>📍 {event.location} | 📅 {new Date(event.date).toLocaleString()}</p>
-                  <p>{event.description}</p>
+              <div key={event.id} style={{ 
+                backgroundColor: colors.cardBg, 
+                borderRadius: '12px', 
+                overflow: 'hidden', 
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                border: `1px solid ${colors.border}`,
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.2s'
+              }}>
+                {event.banner_url ? (
+                  <img src={event.banner_url} alt="Banner" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '160px', backgroundColor: colors.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted, fontSize: '14px' }}>
+                    🖼️ Pa Kopertinë
+                  </div>
+                )}
+                <div style={{ padding: '20px', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600', color: colors.textMain }}>{event.title}</h3>
+                    <p style={{ fontSize: '13px', color: colors.textMuted, margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                      <span style={{ marginRight: '10px' }}>📍 {event.location}</span> <br />
+                      <span>📅 {event.date ? new Date(event.date).toLocaleString('sq-AL', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span>
+                    </p>
+                    <p style={{ margin: '0', fontSize: '14px', color: colors.textMuted, lineHeight: '1.6' }}>{event.description}</p>
+                  </div>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
     </div>
   )
 }
