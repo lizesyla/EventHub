@@ -31,6 +31,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:1234@localhost:5432/eventhub
+      JWT_ACCESS_SECRET: test_access_secret
+      JWT_REFRESH_SECRET: test_refresh_secret
 
     steps:
       - name: Checkout code
