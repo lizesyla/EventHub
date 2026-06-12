@@ -8,7 +8,6 @@ function App() {
     <BrowserRouter>
       <div style={{ backgroundColor: '#0f0c1b', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
         
-        {/* SHIRITI I NAVIGIMIT MODERNE */}
         <header style={{ 
           backgroundColor: '#1a162e', 
           borderBottom: '1px solid #2d294e', 
