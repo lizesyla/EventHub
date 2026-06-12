@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import './App.css'
 import Profile from './pages/Profile'
+import CreateEvent from './pages/CreateEvent'
 
 function App() {
   return (
@@ -8,7 +9,9 @@ function App() {
       <div>
         <nav>
           <h1>EventHub</h1>
+          <Link to="/">Kryesore</Link>
           <Link to="/profile">Profili Im</Link>
+          <Link to="/create-event">Krijo Event</Link> 
         </nav>
 
         <main>
@@ -20,6 +23,7 @@ function App() {
               </div>
             } />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/create-event" element={<CreateEvent />} /> 
           </Routes>
         </main>
       </div>

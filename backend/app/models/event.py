@@ -10,3 +10,4 @@ class Event(Base):
     description = Column(String)
     location = Column(String)
     date = Column(DateTime)
+    banner_url = Column(String, nullable=True)
