@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 import os
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.models import user, event, rsvp
 from app.routes import auth, event as event_routes
+
+from app.middleware.auth import get_current_user, require_role
 
 Base.metadata.create_all(bind=engine)
 
