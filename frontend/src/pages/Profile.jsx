@@ -75,6 +75,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
 
   const token = localStorage.getItem("token")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const headers = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`
@@ -91,7 +92,7 @@ export default function Profile() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [])
+  }, [headers])
 
   async function handleSave() {
     setSaveMsg("")
