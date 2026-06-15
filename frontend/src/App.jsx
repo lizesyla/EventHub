@@ -6,6 +6,11 @@ import CreateEvent from './pages/CreateEvent'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
+import Organizer from './pages/Organizer'
+import Admin from './pages/Admin'
+
+
+
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token")
@@ -75,6 +80,16 @@ function App() {
             <Route path="/create-event" element={
               <ProtectedRoute>
                 <CreateEvent />
+              </ProtectedRoute>
+            } />
+            <Route path="/organizer" element={
+              <ProtectedRoute>
+                <Organizer />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <Admin />
               </ProtectedRoute>
             } />
           </Routes>

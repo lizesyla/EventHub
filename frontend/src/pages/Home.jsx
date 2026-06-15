@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect } from "react"
 
+
 const colors = {
   bgDark: '#0f0c1b',
   cardBg: '#1a162e',

@@ -102,7 +102,11 @@ export default function Register() {
 
         {error && <p style={{ color: colors.error, fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
 
-        <button onClick={handleRegister} style={{ width: '100%', padding: '13px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+       <button 
+          onClick={handleRegister}
+          onMouseEnter={e => e.target.style.backgroundColor = '#7c3aed'}
+          onMouseLeave={e => e.target.style.backgroundColor = colors.accent}
+          style={{ width: '100%', padding: '13px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
           Register
         </button>
 
