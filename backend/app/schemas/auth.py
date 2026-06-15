@@ -1,9 +1,11 @@
 from pydantic import BaseModel, EmailStr, field_validator
+from typing import Literal
 
 class RegisterRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
+    role: Literal["attendee", "organizer", "admin"] = "attendee"
 
     @field_validator("password")
     @classmethod
