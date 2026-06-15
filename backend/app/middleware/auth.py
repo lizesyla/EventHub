@@ -15,7 +15,7 @@ def get_current_user(
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token mungon ose është i pavlefshëm.",
+        detail="Token is missing or invalid.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -36,7 +36,7 @@ def require_role(*allowed_roles: str):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Aksesi refuzohet. Kërkohet rol: {' ose '.join(allowed_roles)}.",
+                detail=f"Access denied. Required role: {' or '.join(allowed_roles)}.",
             )
         return current_user
     return role_checker

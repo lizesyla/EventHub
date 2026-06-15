@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app.models import user, event, rsvp
-from app.routes import auth, event as event_routes
+from app.routes import auth, event as event_routes, profile
+from app.middleware.auth import get_current_user, require_role
 
 from app.middleware.auth import get_current_user, require_role
 
@@ -21,7 +22,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://192.168.1.6:5174",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,7 +36,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(event_routes.router)
-
+app.include_router(profile.router)
 
 @app.get("/")
 def read_root():
