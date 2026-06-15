@@ -32,3 +32,33 @@ app.include_router(event_routes.router)
 @app.get("/")
 def read_root():
     return {"message": "Mirësevini në EventHub API!"}
+
+
+@app.get("/api/protected")
+def protected_route(current_user=Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role
+    }
+
+
+@app.get("/api/attendee")
+def attendee_route(
+    current_user=Depends(require_role("attendee", "organizer", "admin"))
+):
+    return {"message": "Attendee access granted"}
+
+
+@app.get("/api/organizer")
+def organizer_route(
+    current_user=Depends(require_role("organizer", "admin"))
+):
+    return {"message": "Organizer access granted"}
+
+
+@app.get("/api/admin")
+def admin_route(
+    current_user=Depends(require_role("admin"))
+):
+    return {"message": "Admin access granted"}
