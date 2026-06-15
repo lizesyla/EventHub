@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -7,7 +8,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_EXPIRES_MINUTES: int = 15
     JWT_REFRESH_EXPIRES_DAYS: int = 7
 
-    class Config :
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
+
 
 settings = Settings()

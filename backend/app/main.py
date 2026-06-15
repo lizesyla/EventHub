@@ -8,6 +8,8 @@ from app.models import user, event, rsvp
 from app.routes import auth, event as event_routes, profile
 from app.middleware.auth import get_current_user, require_role
 
+from app.middleware.auth import get_current_user, require_role
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -38,7 +40,8 @@ app.include_router(profile.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to EventHub API!"}
+    return {"message": "Mirësevini në EventHub API!"}
+
 
 @app.get("/api/protected")
 def protected_route(current_user=Depends(get_current_user)):
@@ -48,17 +51,20 @@ def protected_route(current_user=Depends(get_current_user)):
         "role": current_user.role
     }
 
+
 @app.get("/api/attendee")
 def attendee_route(
     current_user=Depends(require_role("attendee", "organizer", "admin"))
 ):
     return {"message": "Attendee access granted"}
 
+
 @app.get("/api/organizer")
 def organizer_route(
     current_user=Depends(require_role("organizer", "admin"))
 ):
     return {"message": "Organizer access granted"}
+
 
 @app.get("/api/admin")
 def admin_route(
