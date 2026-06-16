@@ -9,8 +9,16 @@ import Home from './pages/Home'
 import Organizer from './pages/Organizer'
 import Admin from './pages/Admin'
 
-
-
+function parseRole() {
+  try {
+    const token = localStorage.getItem("token")
+    if (!token) return null
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role || null
+  } catch {
+    return null
+  }
+}
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token")
@@ -23,6 +31,7 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
+  const role = parseRole()
 
   function handleLogout() {
     localStorage.removeItem("token")
@@ -35,26 +44,56 @@ function App() {
     setToken(newToken)
   }
 
+  const linkStyle = { color: '#ffffff', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }
+  const activeLinkStyle = { color: '#8b5cf6', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }
+
   return (
     <BrowserRouter>
       <div style={{ backgroundColor: '#0f0c1b', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
-        
-        <header style={{ 
-          backgroundColor: '#1a162e', 
-          borderBottom: '1px solid #2d294e', 
+
+        <header style={{
+          backgroundColor: '#1a162e',
+          borderBottom: '1px solid #2d294e',
           padding: '15px 40px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
-            Event<span style={{ color: '#8b5cf6' }}>Hub</span>
-          </h1>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
+              Event<span style={{ color: '#8b5cf6' }}>Hub</span>
+            </h1>
+          </Link>
+
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <Link to="/" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }}>Home</Link>
-            {token && (
-              <Link to="/profile" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }}>My Profile</Link>
+            <Link to="/" style={linkStyle}>Home</Link>
+
+            {/* ATTENDEE */}
+            {token && role === 'attendee' && (
+              <>
+                <Link to="/events" style={linkStyle}>Events</Link>
+                <Link to="/profile" style={linkStyle}>My Profile</Link>
+              </>
             )}
+
+            {/* ORGANIZER */}
+            {token && role === 'organizer' && (
+              <>
+                <Link to="/organizer" style={linkStyle}>My Events</Link>
+                <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+                <Link to="/profile" style={linkStyle}>My Profile</Link>
+              </>
+            )}
+
+            {/* ADMIN */}
+            {token && role === 'admin' && (
+              <>
+                <Link to="/admin" style={linkStyle}>All Events</Link>
+                <Link to="/admin/users" style={linkStyle}>Users</Link>
+                <Link to="/profile" style={linkStyle}>My Profile</Link>
+              </>
+            )}
+
             {token ? (
               <button onClick={handleLogout} style={{ padding: '7px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                 Sign Out
@@ -73,24 +112,19 @@ function App() {
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
+              <ProtectedRoute><Profile /></ProtectedRoute>
             } />
             <Route path="/create-event" element={
-              <ProtectedRoute>
-                <CreateEvent />
-              </ProtectedRoute>
+              <ProtectedRoute><CreateEvent /></ProtectedRoute>
             } />
             <Route path="/organizer" element={
-              <ProtectedRoute>
-                <Organizer />
-              </ProtectedRoute>
+              <ProtectedRoute><Organizer /></ProtectedRoute>
             } />
             <Route path="/admin" element={
-              <ProtectedRoute>
-                <Admin />
-              </ProtectedRoute>
+              <ProtectedRoute><Admin defaultTab="events" /></ProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute><Admin defaultTab="users" /></ProtectedRoute>
             } />
           </Routes>
         </main>
