@@ -38,7 +38,7 @@ export default function Login({ onLogin }) {
 else if (role === "organizer") window.location.href = "/organizer"
 else window.location.href = "/"
     } else {
-      setError(data.detail || "Invalid credentials")
+      setError("The email or password you entered is incorrect. Please try again.")
     }
   }
 
@@ -73,9 +73,13 @@ else window.location.href = "/"
 
         {error && <p style={{ color: colors.error, fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
 
-        <button onClick={handleLogin} style={{ width: '100%', padding: '13px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
-          Sign In
-        </button>
+        <button 
+        onClick={handleLogin} 
+        onMouseEnter={e => e.target.style.backgroundColor = '#7c3aed'}
+        onMouseLeave={e => e.target.style.backgroundColor = colors.accent}
+        style={{ width: '100%', padding: '13px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
+        Sign In
+      </button>
 
         <p style={{ textAlign: 'center', marginTop: '20px', color: colors.textMuted, fontSize: '14px' }}>
           Don't have an account?{' '}

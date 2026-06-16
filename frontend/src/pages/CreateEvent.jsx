@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 
+
 function CreateEvent() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
