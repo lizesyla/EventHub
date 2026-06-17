@@ -19,10 +19,15 @@ export default function Admin({ defaultTab = 'events' }) {
   const token = localStorage.getItem("token")
   const headers = { "Authorization": `Bearer ${token}` }
 
+  const normalizeEvents = (data) => {
+    if (Array.isArray(data)) return data
+    return [...(data?.upcoming || []), ...(data?.history || [])]
+  }
+
   useEffect(() => {
     fetch("http://localhost:8000/api/events", { headers })
       .then(r => r.json())
-      .then(data => { setEvents(data); setLoading(false) })
+      .then(data => { setEvents(normalizeEvents(data)); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -56,8 +61,8 @@ export default function Admin({ defaultTab = 'events' }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
           {[
             { label: 'Total Events', value: events.length, icon: '📅', color: colors.accent },
-            { label: 'Active Events', value: events.filter(e => !e.is_archived).length, icon: '✅', color: '#10b981' },
-            { label: 'Archived', value: events.filter(e => e.is_archived).length, icon: '📦', color: '#f97316' },
+            { label: 'Active Events', value: events.filter(e => e.status !== 'past').length, icon: '✅', color: '#10b981' },
+            { label: 'Archived', value: events.filter(e => e.status === 'past').length, icon: '📦', color: '#f97316' },
             { label: 'Total Users', value: mockUsers.length, icon: '👥', color: '#06b6d4' },
           ].map((stat, i) => (
             <div key={i} style={{ backgroundColor: colors.cardBg, padding: '20px', borderRadius: '12px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
@@ -94,11 +99,11 @@ export default function Admin({ defaultTab = 'events' }) {
                         <td style={{ padding: '16px', color: colors.textMain, fontSize: '14px', fontWeight: '600' }}>{event.title}</td>
                         <td style={{ padding: '16px', color: colors.textMuted, fontSize: '14px' }}>{event.location}</td>
                         <td style={{ padding: '16px', color: colors.textMuted, fontSize: '14px' }}>
-                          {event.date ? new Date(event.date).toLocaleDateString('en-US') : ''}
+                          {event.date_time ? new Date(event.date_time).toLocaleDateString('en-US') : ''}
                         </td>
                         <td style={{ padding: '16px' }}>
-                          <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '12px', backgroundColor: event.is_archived ? '#37415133' : '#05966933', color: event.is_archived ? '#9ca3af' : '#10b981', fontWeight: '600' }}>
-                            {event.is_archived ? 'Archived' : 'Active'}
+                          <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '12px', backgroundColor: event.status === 'past' ? '#37415133' : '#05966933', color: event.status === 'past' ? '#9ca3af' : '#10b981', fontWeight: '600' }}>
+                            {event.status === 'past' ? 'Archived' : 'Active'}
                           </span>
                         </td>
                         <td style={{ padding: '16px' }}>

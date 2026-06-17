@@ -14,10 +14,15 @@ export default function Organizer() {
   const token = localStorage.getItem("token")
   const headers = { "Authorization": `Bearer ${token}` }
 
+  const normalizeEvents = (data) => {
+    if (Array.isArray(data)) return data
+    return [...(data?.upcoming || []), ...(data?.history || [])]
+  }
+
   useEffect(() => {
     fetch("http://localhost:8000/api/events", { headers })
       .then(r => r.json())
-      .then(data => { setEvents(data); setLoading(false) })
+      .then(data => { setEvents(normalizeEvents(data)); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -40,8 +45,8 @@ export default function Organizer() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
           {[
             { label: 'Total Events', value: events.length, icon: '📅' },
-            { label: 'Active Events', value: events.filter(e => !e.is_archived).length, icon: '✅' },
-            { label: 'Archived Events', value: events.filter(e => e.is_archived).length, icon: '📦' },
+            { label: 'Active Events', value: events.filter(e => e.status !== 'past').length, icon: '✅' },
+            { label: 'Archived Events', value: events.filter(e => e.status === 'past').length, icon: '📦' },
           ].map((stat, i) => (
             <div key={i} style={{ backgroundColor: colors.cardBg, padding: '24px', borderRadius: '12px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>
               <p style={{ fontSize: '32px', margin: '0 0 8px' }}>{stat.icon}</p>
@@ -76,13 +81,13 @@ export default function Organizer() {
                 <div style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <h3 style={{ color: colors.textMain, fontSize: '16px', fontWeight: '700', margin: 0 }}>{event.title}</h3>
-                    <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '12px', backgroundColor: event.is_archived ? '#37415133' : '#05966933', color: event.is_archived ? '#9ca3af' : '#10b981', fontWeight: '600' }}>
-                      {event.is_archived ? 'Archived' : 'Active'}
+                    <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '12px', backgroundColor: event.status === 'past' ? '#37415133' : '#05966933', color: event.status === 'past' ? '#9ca3af' : '#10b981', fontWeight: '600' }}>
+                      {event.status === 'past' ? 'Archived' : 'Active'}
                     </span>
                   </div>
                   <p style={{ color: colors.textMuted, fontSize: '13px', margin: '0 0 4px' }}>📍 {event.location}</p>
                   <p style={{ color: colors.textMuted, fontSize: '13px', margin: '0 0 16px' }}>
-                    📅 {event.date ? new Date(event.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
+                    📅 {event.date_time ? new Date(event.date_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
                   </p>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button style={{ flex: 1, padding: '8px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>

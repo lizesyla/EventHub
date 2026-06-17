@@ -7,10 +7,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const carouselRef = useRef(null)
 
+  const normalizeEvents = (data) => {
+    if (Array.isArray(data)) return data
+    return [...(data?.upcoming || []), ...(data?.history || [])]
+  }
+
   useEffect(() => {
     fetch("http://localhost:8000/api/events")
       .then(r => r.json())
-      .then(data => { setEvents(data); setLoading(false) })
+      .then(data => { setEvents(normalizeEvents(data)); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -255,7 +260,7 @@ export default function Home() {
                   <div style={{ padding: '22px' }}>
                     <h3 style={{ color: '#0f172a', fontSize: '17px', fontWeight: '700', margin: '0 0 10px' }}>{event.title}</h3>
                     <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 4px' }}>📍 {event.location}</p>
-                    <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 18px' }}>🗓️ {event.date ? new Date(event.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</p>
+                    <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 18px' }}>🗓️ {event.date_time ? new Date(event.date_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</p>
                     {event.description && (
                       <p style={{ color: '#64748b', fontSize: '13px', margin: '0 0 18px', lineHeight: '1.6', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{event.description}</p>
                     )}

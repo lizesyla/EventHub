@@ -9,7 +9,7 @@ import Home from './pages/Home'
 import Organizer from './pages/Organizer'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
-
+import EventDetail from './pages/EventDetail'  
 function parseRole() {
   try {
     const token = localStorage.getItem("token")
@@ -123,6 +123,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={

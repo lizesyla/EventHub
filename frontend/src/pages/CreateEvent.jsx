@@ -10,12 +10,19 @@ function CreateEvent() {
   const [errors, setErrors] = useState({})
   const [events, setEvents] = useState([])
 
+  const token = localStorage.getItem('token')
+
+  const normalizeEvents = (data) => {
+    if (Array.isArray(data)) return data
+    return [...(data?.upcoming || []), ...(data?.history || [])]
+  }
+
   const fetchEvents = async () => {
     try {
       const res = await fetch('http://localhost:8000/api/events')
       if (res.ok) {
         const data = await res.json()
-        setEvents(data)
+        setEvents(normalizeEvents(data))
       }
     } catch (err) {
       console.error("Gabim gjatë marrjes së eventeve:", err)
@@ -29,7 +36,7 @@ function CreateEvent() {
         const res = await fetch('http://localhost:8000/api/events')
         if (res.ok) {
           const data = await res.json()
-          if (isMounted) setEvents(data)
+          if (isMounted) setEvents(normalizeEvents(data))
         }
       } catch (err) {
         console.error("Gabim gjatë ngarkimit fillestar:", err)
@@ -57,13 +64,14 @@ function CreateEvent() {
     const formData = new FormData()
     formData.append('title', title)
     formData.append('description', description)
-    formData.append('date', date)
+    formData.append('date_time', date)
     formData.append('location', location)
     if (banner) formData.append('banner', banner)
 
     try {
       const response = await fetch('http://localhost:8000/api/events', {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       })
 
@@ -232,7 +240,7 @@ return (
                     <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600', color: colors.textMain }}>{event.title}</h3>
                     <p style={{ fontSize: '13px', color: colors.textMuted, margin: '0 0 12px 0', lineHeight: '1.5' }}>
                       <span style={{ marginRight: '10px' }}>📍 {event.location}</span> <br />
-                      <span>📅 {event.date ? new Date(event.date).toLocaleString('sq-AL', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span>
+                      <span>📅 {event.date_time ? new Date(event.date_time).toLocaleString('sq-AL', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</span>
                     </p>
                     <p style={{ margin: '0', fontSize: '14px', color: colors.textMuted, lineHeight: '1.6' }}>{event.description}</p>
                   </div>
