@@ -2,12 +2,9 @@ from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 import os
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.database import Base, engine
 from app.models import user, event, rsvp
-from app.routes import auth, event as event_routes, profile
-from app.middleware.auth import get_current_user, require_role
-
+from app.routes import auth, event as event_routes, profile, admin
 from app.middleware.auth import get_current_user, require_role
 
 Base.metadata.create_all(bind=engine)
@@ -37,11 +34,11 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(event_routes.router)
 app.include_router(profile.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def read_root():
     return {"message": "Mirësevini në EventHub API!"}
-
 
 @app.get("/api/protected")
 def protected_route(current_user=Depends(get_current_user)):
@@ -51,23 +48,14 @@ def protected_route(current_user=Depends(get_current_user)):
         "role": current_user.role
     }
 
-
 @app.get("/api/attendee")
-def attendee_route(
-    current_user=Depends(require_role("attendee", "organizer", "admin"))
-):
+def attendee_route(current_user=Depends(require_role("attendee", "organizer", "admin"))):
     return {"message": "Attendee access granted"}
 
-
 @app.get("/api/organizer")
-def organizer_route(
-    current_user=Depends(require_role("organizer", "admin"))
-):
+def organizer_route(current_user=Depends(require_role("organizer", "admin"))):
     return {"message": "Organizer access granted"}
 
-
 @app.get("/api/admin")
-def admin_route(
-    current_user=Depends(require_role("admin"))
-):
+def admin_route(current_user=Depends(require_role("admin"))):
     return {"message": "Admin access granted"}
