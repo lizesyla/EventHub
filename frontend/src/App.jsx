@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import Organizer from './pages/Organizer'
 import Admin from './pages/Admin'
+import Events from './pages/Events'
 
 function parseRole() {
   try {
@@ -31,17 +32,24 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
-  const role = parseRole()
+  const [role, setRole] = useState(parseRole())
 
   function handleLogout() {
     localStorage.removeItem("token")
     setToken(null)
+    setRole(null)
     window.location.href = "/"
   }
 
   function handleLogin(newToken) {
     localStorage.setItem("token", newToken)
     setToken(newToken)
+    try {
+      const payload = JSON.parse(atob(newToken.split('.')[1]))
+      setRole(payload.role || null)
+    } catch {
+      setRole(null)
+    }
   }
 
   const linkStyle = { color: '#ffffff', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }
@@ -67,6 +75,11 @@ function App() {
 
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
             <Link to="/" style={linkStyle}>Home</Link>
+
+            {/* PA LOGIN */}
+            {!token && (
+              <Link to="/events" style={linkStyle}>Events</Link>
+            )}
 
             {/* ATTENDEE */}
             {token && role === 'attendee' && (
@@ -109,6 +122,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={
