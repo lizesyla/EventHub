@@ -5,7 +5,7 @@ class RegisterRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: Literal["attendee", "organizer", "admin"] = "attendee"
+    role: Literal["attendee", "admin"] = "attendee"
 
     @field_validator("password")
     @classmethod

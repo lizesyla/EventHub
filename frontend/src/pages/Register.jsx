@@ -19,7 +19,7 @@ export default function Register() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [role, setRole] = useState("attendee")
+  // const [role, setRole] = useState("attendee")
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
   const navigate = useNavigate()
@@ -39,7 +39,7 @@ export default function Register() {
     const res = await fetch("http://localhost:8000/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role })
+      body: JSON.stringify({ name, email, password, role: "attendee" })
     })
     const data = await res.json()
     if (res.ok) {
@@ -53,6 +53,7 @@ export default function Register() {
     }
   }
 
+<<<<<<< HEAD
   const roles = [
     { value: "attendee", label: "👤 Attendee", desc: "Browse and sign up for events." },
     { value: "organizer", label: "🎯 Organizer", desc: "Create and manage events. Requires admin approval." },
@@ -79,6 +80,11 @@ export default function Register() {
       </div>
     )
   }
+=======
+  return (
+    <div style={{ backgroundColor: colors.bgDark, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ backgroundColor: colors.cardBg, padding: '36px', borderRadius: '16px', border: `1px solid ${colors.border}`, width: '100%', maxWidth: '440px' }}>
+>>>>>>> Remove-Organizer
 
   return (
     
@@ -117,6 +123,7 @@ export default function Register() {
           <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
         </div>
 
+<<<<<<< HEAD
         {/* Role Selection */}
         <div style={{ marginBottom: '28px' }}>
           <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '10px' }}>Select Your Role</label>
@@ -133,9 +140,15 @@ export default function Register() {
                 {r.label}
               </button>
             ))}
+=======
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '10px' }}>Account Type</label>
+          <div style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.inputBg, color: colors.textMain, fontSize: '14px' }}>
+            👤 Attendee
+>>>>>>> Remove-Organizer
           </div>
           <p style={{ color: colors.textMuted, fontSize: '12px', marginTop: '8px' }}>
-            {roles.find(r => r.value === role)?.desc}
+            Everyone can submit events. Admin will review and approve them.
           </p>
           {role === 'organizer' && (
             <div style={{ marginTop: '10px', padding: '10px 14px', backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px' }}>

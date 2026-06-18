@@ -55,4 +55,8 @@ def deactivate_user(
         raise HTTPException(status_code=400, detail="Cannot deactivate an admin.")
     user.is_approved = False
     db.commit()
+<<<<<<< HEAD
     return {"message": f"{user.name} has been deactivated."}
+=======
+    return {"message": f"{user.name} has been deactivated."}
+>>>>>>> Remove-Organizer

@@ -107,10 +107,10 @@ export default function Home() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '36px' }}>
               {[
-                { icon: '✅', text: 'Organizers create events with banners, capacity and location' },
+                { icon: '✅', text: 'Users submit events with banners, capacity and location' },
                 { icon: '🎯', text: 'Attendees browse and RSVP with one click — cancel anytime' },
-                { icon: '📊', text: 'Track attendance, guest lists and trends with live dashboard' },
-                { icon: '🔒', text: 'Role-based access — Attendee, Organizer and Admin' },
+                { icon: '📊', text: 'Admins approve submissions and track attendance from one dashboard' },
+                { icon: '🔒', text: 'Role-based access — Attendee and Admin' },
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
@@ -240,7 +240,7 @@ export default function Home() {
             <div style={{ textAlign: 'center', padding: '80px', backgroundColor: '#f8fafc', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
               <p style={{ fontSize: '52px', marginBottom: '16px' }}>📅</p>
               <h3 style={{ color: '#0f172a', fontSize: '22px', fontWeight: '700', margin: '0 0 12px' }}>No events yet</h3>
-              <p style={{ color: '#64748b', margin: '0 0 28px' }}>Events will appear here when organizers create them.</p>
+              <p style={{ color: '#64748b', margin: '0 0 28px' }}>Events will appear here after admin approval.</p>
               <Link to="/register" style={{ padding: '13px 28px', backgroundColor: '#6366f1', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Get Started →</Link>
             </div>
           ) : (
@@ -287,7 +287,7 @@ export default function Home() {
             {[
               { step: '01', icon: '🔍', title: 'Discover Events', desc: 'Browse upcoming events on a beautiful board. Find what excites you.', color: '#6366f1' },
               { step: '02', icon: '✅', title: 'RSVP Instantly', desc: 'Sign up with one click. Cancel anytime. First come, first served.', color: '#8b5cf6' },
-              { step: '03', icon: '📊', title: 'Track Attendance', desc: 'Organizers see who is coming. Dashboard shows live turnout and trends.', color: '#06b6d4' },
+              { step: '03', icon: '📊', title: 'Track Attendance', desc: 'Admins see who is coming. Dashboard shows live turnout and trends.', color: '#06b6d4' },
             ].map((item, i) => (
               <div key={i} className="step-card" style={{ backgroundColor: '#ffffff', padding: '40px 32px', borderRadius: '24px', border: '1px solid #e2e8f0', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: `linear-gradient(90deg, ${item.color}, transparent)` }} />

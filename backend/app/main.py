@@ -2,6 +2,11 @@ from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 import os
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
+=======
+from app.routes import admin
+
+>>>>>>> Remove-Organizer
 from app.database import Base, engine
 from app.models import user, event, rsvp
 from app.routes import auth, event as event_routes, profile, admin
@@ -49,12 +54,20 @@ def protected_route(current_user=Depends(get_current_user)):
     }
 
 @app.get("/api/attendee")
+<<<<<<< HEAD
 def attendee_route(current_user=Depends(require_role("attendee", "organizer", "admin"))):
     return {"message": "Attendee access granted"}
 
 @app.get("/api/organizer")
 def organizer_route(current_user=Depends(require_role("organizer", "admin"))):
     return {"message": "Organizer access granted"}
+=======
+def attendee_route(
+    current_user=Depends(require_role("attendee", "admin"))
+):
+    return {"message": "Attendee access granted"}
+
+>>>>>>> Remove-Organizer
 
 @app.get("/api/admin")
 def admin_route(current_user=Depends(require_role("admin"))):

@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+=======
+import { useState, useEffect, useCallback } from "react"
+>>>>>>> Remove-Organizer
 
 function CreateEvent() {
   const [title, setTitle] = useState('')
@@ -9,9 +13,64 @@ function CreateEvent() {
   const [capacity, setCapacity] = useState('')
   const [banner, setBanner] = useState(null)
   const [errors, setErrors] = useState({})
+<<<<<<< HEAD
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+=======
+  const [events, setEvents] = useState([])
+  const [statusNote, setStatusNote] = useState("")
+
+  const colors = {
+    bgDark: "#0f0c1b",
+    cardBg: "#1a162e",
+    inputBg: "#252142",
+    textMain: "#ffffff",
+    textMuted: "#b3b0cd",
+    accent: "#8b5cf6",
+    accentHover: "#7c3aed",
+    border: "#2d294e",
+    error: "#ef4444",
+  }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "8px",
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.inputBg,
+    color: colors.textMain,
+    fontSize: "14px",
+    marginTop: "6px",
+    boxSizing: "border-box",
+    outline: "none",
+  }
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token")
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+const fetchEvents = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/events", {
+        headers: getAuthHeaders(),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setEvents(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error("Gabim gjatë marrjes së eventeve:", err)
+    }
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchEvents()
+  }, [fetchEvents])
+>>>>>>> Remove-Organizer
 
   const validateForm = () => {
     let localErrors = {}
@@ -51,12 +110,29 @@ function CreateEvent() {
       })
 
       if (response.ok) {
+<<<<<<< HEAD
         setSuccess("Event published successfully!")
         setTitle('')
         setDescription('')
         setDate('')
         setLocation('')
         setCapacity('')
+=======
+        const data = await response.json()
+        const reviewStatus = data.review_status || "pending"
+
+        setStatusNote(
+          reviewStatus === "pending"
+            ? "Eventi u dërgua për approval nga admini."
+            : "Eventi u publikua menjëherë."
+        )
+
+        alert(reviewStatus === "pending" ? "Eventi u dërgua për approval!" : "Eventi u krijua me sukses!")
+        setTitle("")
+        setDescription("")
+        setDate("")
+        setLocation("")
+>>>>>>> Remove-Organizer
         setBanner(null)
         setErrors({})
         setTimeout(() => {
@@ -85,6 +161,7 @@ function CreateEvent() {
     green: '#10b981',
   }
 
+<<<<<<< HEAD
   const inputStyle = {
     width: '100%',
     padding: '12px 14px',
@@ -128,6 +205,17 @@ function CreateEvent() {
         {success && (
           <div style={{ padding: '14px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             ✅ {success} — Redirecting to My Events...
+          </div>
+        )}
+=======
+        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
+          Plotësoni detajet e mëposhtme për ta dërguar eventin për approval nga admini.
+        </p>
+>>>>>>> Remove-Organizer
+
+        {statusNote && (
+          <div style={{ marginBottom: "18px", padding: "12px", borderRadius: "10px", backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.textMain, fontSize: "13px" }}>
+            {statusNote}
           </div>
         )}
 
