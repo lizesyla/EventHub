@@ -417,8 +417,8 @@ export default function Organizer() {
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

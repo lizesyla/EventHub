@@ -58,7 +58,12 @@ export default function Login({ onLogin }) {
       else if (role === "organizer") window.location.href = "/organizer"
       else window.location.href = "/"
     } else {
-      setError("The email or password you entered is incorrect. Please try again.")
+      // Shfaq mesazhin e saktë nga backend
+      if (data.detail && data.detail.includes("pending admin approval")) {
+        setIsPending(true)
+      } else {
+        setError(data.detail || "The email or password you entered is incorrect.")
+      }
     }
   }
 
@@ -72,6 +77,7 @@ export default function Login({ onLogin }) {
           <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" style={inputStyle} />
         </div>
+        
 
         <div style={{ marginBottom: "24px" }}>
           <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Password</label>

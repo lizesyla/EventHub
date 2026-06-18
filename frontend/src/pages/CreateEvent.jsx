@@ -119,14 +119,18 @@ function CreateEvent() {
         setDate("")
         setLocation("")
         setBanner(null)
-        fetchEvents()
+        setErrors({})
+        setTimeout(() => {
+          navigate('/organizer')
+        }, 1500)
       } else {
         const errorData = await response.json()
         alert(`Gabim: ${errorData.detail || "Diçka shkoi keq"}`)
       }
     } catch (err) {
-      console.error(err)
-      alert("Nuk u realizua lidhja me serverin.")
+      alert("Could not connect to the server.")
+    } finally {
+      setLoading(false)
     }
   }
 
