@@ -82,6 +82,12 @@ def get_events(db: Session = Depends(get_db)):
     return db.query(Event).all()
 
 
+@router.get("/history")
+def get_event_history(db: Session = Depends(get_db)):
+    return db.query(Event).filter(
+        Event.status.in_(["past", "cancelled"])
+    ).all()
+
 @router.put("/{event_id}")
 def update_event(
     event_id: int,
