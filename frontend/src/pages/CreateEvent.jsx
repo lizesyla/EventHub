@@ -66,7 +66,7 @@ function CreateEvent() {
         const errorData = await response.json()
         alert(`Error: ${errorData.detail || 'Something went wrong'}`)
       }
-    } catch {
+    } catch (err) {
       alert("Could not connect to the server.")
     } finally {
       setLoading(false)

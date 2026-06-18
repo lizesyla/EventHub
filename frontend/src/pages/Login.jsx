@@ -93,24 +93,27 @@ export default function Login({ onLogin }) {
       if (role === "admin") window.location.href = "/admin"
       else if (role === "organizer") window.location.href = "/organizer"
       else window.location.href = "/"
-    } catch {
-      setError("Could not connect to the server. Make sure the backend is running on http://localhost:8000.")
-    } finally {
-      setIsSubmitting(false)
+    } else {
+      // Shfaq mesazhin e saktë nga backend
+      if (data.detail && data.detail.includes("pending admin approval")) {
+        setIsPending(true)
+      } else {
+        setError(data.detail || "The email or password you entered is incorrect.")
+      }
     }
   }
 
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ backgroundColor: colors.cardBg, padding: "40px 36px", borderRadius: "20px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
-        <Link
-          to="/"
-          style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: colors.textMuted, textDecoration: "none", fontSize: "14px", marginBottom: "24px" }}
-          onMouseEnter={e => e.currentTarget.style.color = colors.accent}
-          onMouseLeave={e => e.currentTarget.style.color = colors.textMuted}
-        >
-          {"<- Back to Home"}
-        </Link>
+      <div style={{ backgroundColor: colors.cardBg, padding: "36px", borderRadius: "16px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
+        <h2 style={{ color: colors.textMain, fontSize: "24px", fontWeight: "700", margin: "0 0 8px 0" }}>Welcome back</h2>
+        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "28px" }}>EventHub · Internal Platform</p>
+
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" style={inputStyle} />
+        </div>
+        
 
         <div style={{ marginBottom: "32px" }}>
           <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENTHUB</p>

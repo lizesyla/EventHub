@@ -35,27 +35,11 @@ def approve_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    if user.role == "admin":
-        raise HTTPException(status_code=400, detail="Admin accounts are always active.")
+    if user.role != "organizer":
+        raise HTTPException(status_code=400, detail="Only organizers need approval.")
     user.is_approved = True
     db.commit()
-    return {"message": f"{user.name} has been activated."}
-
-
-@router.patch("/users/{user_id}/reactivate")
-def reactivate_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    if user.role == "admin":
-        raise HTTPException(status_code=400, detail="Admin accounts are always active.")
-    user.is_approved = True
-    db.commit()
-    return {"message": f"{user.name} has been reactivated."}
+    return {"message": f"{user.name} has been approved as Organizer."}
 
 # DEACTIVATE user
 @router.patch("/users/{user_id}/deactivate")
@@ -72,22 +56,3 @@ def deactivate_user(
     user.is_approved = False
     db.commit()
     return {"message": f"{user.name} has been deactivated."}
-
-
-@router.delete("/users/{user_id}")
-def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    if user.role == "admin":
-        raise HTTPException(status_code=400, detail="Cannot delete an admin.")
-
-    name = user.name
-    db.delete(user)
-    db.commit()
-
-    return {"message": f"{name} has been deleted."}

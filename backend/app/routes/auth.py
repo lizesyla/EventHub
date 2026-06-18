@@ -41,11 +41,9 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials.")
 
-    if not user.is_approved:
-        detail = "Your account is deactivated. Contact an admin."
-        if user.role == "organizer":
-            detail = "Your organizer account is pending admin approval."
-        raise HTTPException(status_code=403, detail=detail)
+    # Block organizer if not approved
+    if user.role == "organizer" and not user.is_approved:
+        raise HTTPException(status_code=403, detail="Your organizer account is pending admin approval.")
 
     tokens = generate_tokens(user.id, user.email, user.role)
     user.refresh_token = tokens["refresh_token"]

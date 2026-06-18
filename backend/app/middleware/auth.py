@@ -30,13 +30,11 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
-    if not user.is_approved:
-        detail = "Your account is deactivated. Contact an admin."
-        if user.role == "organizer":
-            detail = "Your organizer account is pending admin approval."
+    # Block organizer if not approved by admin
+    if user.role == "organizer" and not user.is_approved:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=detail
+            detail="Your organizer account is pending admin approval."
         )
 
     return user
