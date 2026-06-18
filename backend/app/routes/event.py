@@ -177,3 +177,100 @@ def cancel_event(
     db.refresh(event)
 
     return {"message": "Eventi u anulua dhe RSVP-të u liruan.", "event": event}
+
+@router.post("/{event_id}/rsvp")
+def rsvp_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "attendee":
+        raise HTTPException(status_code=403, detail="Vetëm attendee mund të bëjë RSVP.")
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
+
+    if event.status != "upcoming":
+        raise HTTPException(status_code=400, detail="RSVP lejohet vetëm për evente upcoming.")
+
+    existing_rsvp = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.user_id == current_user.id,
+        RSVP.status == "going"
+    ).first()
+
+    if existing_rsvp:
+        raise HTTPException(status_code=409, detail="Ju tashmë keni bërë RSVP për këtë event.")
+
+    current_count = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going"
+    ).count()
+
+    if event.capacity is not None and current_count >= event.capacity:
+        raise HTTPException(status_code=400, detail="Eventi është full. Nuk ka vende të lira.")
+
+    rsvp = RSVP(
+        user_id=current_user.id,
+        event_id=event_id,
+        status="going"
+    )
+
+    db.add(rsvp)
+    db.commit()
+    db.refresh(rsvp)
+
+    return {
+        "message": "RSVP u krye me sukses.",
+        "event_id": event_id,
+        "user_id": current_user.id,
+        "spots_taken": current_count + 1,
+        "capacity": event.capacity
+    }
+
+
+@router.delete("/{event_id}/rsvp")
+def cancel_rsvp(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    rsvp = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.user_id == current_user.id,
+        RSVP.status == "going"
+    ).first()
+
+    if not rsvp:
+        raise HTTPException(status_code=404, detail="Nuk u gjet RSVP aktive për këtë event.")
+
+    rsvp.status = "cancelled"
+    rsvp.cancelled_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(rsvp)
+
+    return {"message": "RSVP u anulua me sukses."}
+
+
+@router.get("/{event_id}/rsvp-count")
+def get_rsvp_count(
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
+
+    going_count = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going"
+    ).count()
+
+    return {
+        "event_id": event_id,
+        "going_count": going_count,
+        "capacity": event.capacity,
+        "spots_left": None if event.capacity is None else event.capacity - going_count
+    }
