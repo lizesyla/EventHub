@@ -18,6 +18,7 @@ export default function Admin({ defaultTab = 'events' }) {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
   const token = localStorage.getItem("token")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const headers = { "Authorization": `Bearer ${token}` }
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function Admin({ defaultTab = 'events' }) {
       .then(r => r.json())
       .then(data => { setEvents(data); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [headers])
 
   const reloadEvents = () => {
     setLoading(true)
