@@ -40,7 +40,8 @@ function CreateEvent() {
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
-  const fetchEvents = async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-undef
+  const fetchEvents = useCallback(async () => {
     try {
       const res = await fetch("http://localhost:8000/api/events", {
         headers: getAuthHeaders(),
@@ -53,11 +54,12 @@ function CreateEvent() {
     } catch (err) {
       console.error("Gabim gjatë marrjes së eventeve:", err)
     }
-  }
+  })
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEvents()
-  }, [])
+  }, [fetchEvents])
 
   const validateForm = () => {
     const localErrors = {}
