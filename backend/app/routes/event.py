@@ -216,17 +216,31 @@ def cancel_event(
     current_user: User = Depends(get_current_user)
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
-
     if not event:
-        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
+        raise HTTPException(status_code=404, detail="Event not found.")
 
-    ensure_owner(event, current_user)
+    # Admin mund të cancel-ojë çdo event, owner vetëm të tijat
+    if current_user.role != "admin":
+        ensure_owner(event, current_user)
 
     event.status = "cancelled"
-
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
-
     db.commit()
     db.refresh(event)
+    return {"message": "Event cancelled and RSVPs freed."}
 
-    return {"message": "Eventi u anulua dhe RSVP-të u liruan.", "event": event}
+@router.delete("/{event_id}")
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only.")
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+    db.delete(event)
+    db.commit()
+    return {"message": "Event deleted successfully."}

@@ -90,13 +90,17 @@ function App() {
             )}
 
             {/* ADMIN */}
-            {isAdmin && (
-              <>
-                <Link to="/admin" style={linkStyle}>All Events</Link>
-                <Link to="/admin/users" style={linkStyle}>Users</Link>
-                <Link to="/profile" style={linkStyle}>My Profile</Link>
-              </>
-            )}
+          {/* ADMIN */}
+{isAdmin && (
+  <>
+    <Link to="/events" style={linkStyle}>Events</Link>
+    <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+    <Link to="/admin" style={linkStyle}>All Events</Link>
+    <Link to="/admin/users" style={linkStyle}>Users</Link>
+    <Link to="/profile" style={linkStyle}>My Profile</Link>
+  </>
+)}
+            
 
             {token ? (
               <button onClick={handleLogout} style={{ padding: '7px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>

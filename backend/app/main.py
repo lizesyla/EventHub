@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes import admin
 
 from app.database import Base, engine
 from app.models import user, event, rsvp
@@ -37,6 +38,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(event_routes.router)
 app.include_router(profile.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def read_root():
