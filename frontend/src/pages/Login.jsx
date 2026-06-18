@@ -28,11 +28,13 @@ const inputStyle = {
 
 function getErrorMessage(detail) {
   if (typeof detail === "string") return detail
+
   if (Array.isArray(detail)) {
     return detail
-      .map(item => item.msg || item.message || "Invalid login request.")
+      .map((item) => item.msg || item.message || "Invalid login request.")
       .join(" ")
   }
+
   return "The email or password you entered is incorrect."
 }
 
@@ -51,6 +53,7 @@ export default function Login({ onLogin }) {
     setIsPending(false)
 
     const cleanEmail = email.trim()
+
     if (!cleanEmail || !password) {
       setError("Please fill in all fields.")
       return
@@ -70,11 +73,13 @@ export default function Login({ onLogin }) {
 
       if (!res.ok) {
         const message = getErrorMessage(data.detail)
+
         if (message.includes("pending admin approval")) {
           setIsPending(true)
         } else {
           setError(message || `Login failed with status ${res.status}.`)
         }
+
         return
       }
 
@@ -90,44 +95,82 @@ export default function Login({ onLogin }) {
       if (onLogin) onLogin(data.access_token)
 
       const role = data.user.role
-      if (role === "admin") window.location.href = "/admin"
-      else if (role === "organizer") window.location.href = "/organizer"
-      else window.location.href = "/"
-    } else {
-      // Shfaq mesazhin e saktë nga backend
-      if (data.detail && data.detail.includes("pending admin approval")) {
-        setIsPending(true)
+
+      if (role === "admin") {
+        window.location.href = "/admin"
+      } else if (role === "organizer") {
+        window.location.href = "/organizer"
       } else {
-        setError(data.detail || "The email or password you entered is incorrect.")
+        window.location.href = "/"
       }
+    } catch {
+      setError("Could not connect to the server.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ backgroundColor: colors.cardBg, padding: "36px", borderRadius: "16px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
-        <h2 style={{ color: colors.textMain, fontSize: "24px", fontWeight: "700", margin: "0 0 8px 0" }}>Welcome back</h2>
-        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "28px" }}>EventHub · Internal Platform</p>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" style={inputStyle} />
-        </div>
-        
-
+    <div
+      style={{
+        backgroundColor: colors.bgDark,
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: colors.cardBg,
+          padding: "36px",
+          borderRadius: "16px",
+          border: `1px solid ${colors.border}`,
+          width: "100%",
+          maxWidth: "400px",
+        }}
+      >
         <div style={{ marginBottom: "32px" }}>
-          <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENTHUB</p>
-          <h2 style={{ color: colors.textMain, fontSize: "26px", fontWeight: "800", margin: "0 0 8px", letterSpacing: "-0.5px" }}>Welcome back</h2>
-          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform - Genpact</p>
+          <p
+            style={{
+              color: colors.accent,
+              fontSize: "12px",
+              fontWeight: "700",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              margin: "0 0 12px",
+            }}
+          >
+            EVENTHUB
+          </p>
+
+          <h2
+            style={{
+              color: colors.textMain,
+              fontSize: "26px",
+              fontWeight: "800",
+              margin: "0 0 8px",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            Welcome back
+          </h2>
+
+          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>
+            Internal Events Platform - Genpact
+          </p>
         </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: "16px" }}>
-            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>
+              Email
+            </label>
             <input
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="john@company.com"
               style={inputStyle}
               autoComplete="email"
@@ -135,11 +178,13 @@ export default function Login({ onLogin }) {
           </div>
 
           <div style={{ marginBottom: "28px" }}>
-            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Password</label>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               style={inputStyle}
               autoComplete="current-password"
@@ -147,16 +192,44 @@ export default function Login({ onLogin }) {
           </div>
 
           {error && (
-            <div style={{ padding: "12px 14px", backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", marginBottom: "16px" }}>
-              <p style={{ color: colors.error, fontSize: "14px", margin: 0 }}>{error}</p>
+            <div
+              style={{
+                padding: "12px 14px",
+                backgroundColor: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.3)",
+                borderRadius: "8px",
+                marginBottom: "16px",
+              }}
+            >
+              <p style={{ color: colors.error, fontSize: "14px", margin: 0 }}>
+                {error}
+              </p>
             </div>
           )}
 
           {isPending && (
-            <div style={{ padding: "16px", backgroundColor: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "10px", marginBottom: "16px" }}>
-              <p style={{ color: colors.warning, fontSize: "14px", fontWeight: "700", margin: "0 0 6px" }}>Account Pending Approval</p>
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "rgba(245,158,11,0.1)",
+                border: "1px solid rgba(245,158,11,0.3)",
+                borderRadius: "10px",
+                marginBottom: "16px",
+              }}
+            >
+              <p
+                style={{
+                  color: colors.warning,
+                  fontSize: "14px",
+                  fontWeight: "700",
+                  margin: "0 0 6px",
+                }}
+              >
+                Account Pending Approval
+              </p>
               <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}>
-                Your organizer account is awaiting admin approval. You will be able to sign in once approved.
+                Your organizer account is awaiting admin approval. You will be able to
+                sign in once approved.
               </p>
             </div>
           )}
@@ -164,15 +237,44 @@ export default function Login({ onLogin }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            style={{ width: "100%", padding: "14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.75 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "all 0.2s" }}
+            style={{
+              width: "100%",
+              padding: "14px",
+              backgroundColor: colors.accent,
+              color: "#fff",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: "15px",
+              fontWeight: "700",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              opacity: isSubmitting ? 0.75 : 1,
+              boxShadow: "0 4px 20px rgba(99,102,241,0.4)",
+              transition: "all 0.2s",
+            }}
           >
             {isSubmitting ? "Signing in..." : "Sign In ->"}
           </button>
         </form>
 
-        <p style={{ textAlign: "center", marginTop: "20px", color: colors.textMuted, fontSize: "14px" }}>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "20px",
+            color: colors.textMuted,
+            fontSize: "14px",
+          }}
+        >
           Don't have an account?{" "}
-          <Link to="/register" style={{ color: colors.accent, fontWeight: "600", textDecoration: "none" }}>Register</Link>
+          <Link
+            to="/register"
+            style={{
+              color: colors.accent,
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
+          >
+            Register
+          </Link>
         </p>
       </div>
     </div>

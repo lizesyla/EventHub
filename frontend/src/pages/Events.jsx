@@ -19,10 +19,15 @@ export default function Events() {
   const token = localStorage.getItem("token")
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events")
-      .then(r => r.json())
-      .then(data => { setEvents(data); setLoading(false) })
-      .catch(() => setLoading(false))
+  fetch("http://localhost:8000/api/events")
+    .then(r => r.json())
+    .then(data => {
+      setEvents(data)
+      setLoading(false)
+    })
+    .catch(() => setLoading(false))
+}, [])
+
 
   function handleRSVP(eventId) {
     if (!token) {
