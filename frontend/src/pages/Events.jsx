@@ -23,7 +23,6 @@ export default function Events() {
       .then(r => r.json())
       .then(data => { setEvents(data); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
 
   function handleRSVP(eventId) {
     if (!token) {

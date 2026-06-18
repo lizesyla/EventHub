@@ -12,10 +12,11 @@ export default function Admin({ defaultTab = 'events' }) {
   const [loadingEvents, setLoadingEvents] = useState(true)
   const [loadingUsers, setLoadingUsers] = useState(true)
   const token = localStorage.getItem("token")
-  const headers = { "Authorization": `Bearer ${token}` }
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events", { headers })
+    const authHeaders = { Authorization: `Bearer ${token}` }
+
+    fetch("http://localhost:8000/api/events", { headers: authHeaders })
       .then(r => r.json())
       .then(data => { setEvents(Array.isArray(data) ? data : []); setLoadingEvents(false) })
       .catch(() => setLoadingEvents(false))
@@ -57,10 +58,20 @@ export default function Admin({ defaultTab = 'events' }) {
     return { bg: 'rgba(99,102,241,0.15)', color: '#6366f1', border: '#6366f1' }
   }
 
-  const roleIcon = (role) => {
-    if (role === 'admin') return '🛡️'
-    if (role === 'organizer') return '🎯'
-    return '👤'
+  async function handleDeactivate(userId) {
+    if (!window.confirm("Are you sure you want to deactivate this user?")) return
+
+    setUserMessage("")
+    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/deactivate`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      setUsers(prev => prev.map(user =>
+        user.id === userId ? { ...user, is_approved: false } : user
+      ))
+      setUserMessage("User deactivated.")
+    }
   }
 
   return (
@@ -94,23 +105,95 @@ export default function Admin({ defaultTab = 'events' }) {
           ))}
         </div>
 
-        {/* ALL EVENTS */}
-        {defaultTab === 'events' && (
+        {defaultTab === "events" && (
           <div>
             {loadingEvents ? (
               <p style={{ color: colors.textMuted }}>Loading...</p>
             ) : events.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px', backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}` }}>
-                <p style={{ fontSize: '40px', marginBottom: '12px' }}>📅</p>
+              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
                 <p style={{ color: colors.textMuted }}>No events found.</p>
               </div>
             ) : (
-              <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "22px" }}>
+                {events.map(event => {
+                  const status = statusStyle(event.status || "upcoming")
+                  return (
+                    <article key={event.id} style={{ backgroundColor: colors.cardBg, borderRadius: "12px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
+                      <EventBanner event={event} />
+
+                      <div style={{ padding: "20px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
+                          <div>
+                            <h3 style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: "0 0 6px" }}>{event.title}</h3>
+                            <p style={{ color: colors.textMuted, fontSize: "12px", margin: 0 }}>Event ID #{event.id}</p>
+                          </div>
+                          <span style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "999px", backgroundColor: status.bg, color: status.color, fontWeight: "700", textTransform: "uppercase", flexShrink: 0 }}>
+                            {event.status || "upcoming"}
+                          </span>
+                        </div>
+
+                        <p style={{ color: colors.textMuted, fontSize: "14px", lineHeight: "1.6", margin: "0 0 16px", minHeight: "44px" }}>
+                          {event.description || "No description provided."}
+                        </p>
+
+                        <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
+                          <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Date:</strong> {formatDate(event.date_time)}</p>
+                          <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Location:</strong> {event.location || "No location"}</p>
+                          <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Organizer:</strong> {getOrganizer(event)}</p>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "18px", borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}`, padding: "12px 0" }}>
+                          <div>
+                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Capacity</p>
+                            <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.capacity ?? "Unlimited"}</p>
+                          </div>
+                          <div>
+                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reserved</p>
+                            <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.going_count || 0}</p>
+                          </div>
+                          <div>
+                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Free</p>
+                            <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.spots_left ?? "Open"}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteEvent(event.id)}
+                          disabled={deletingEventId === event.id}
+                          style={{ width: "100%", padding: "10px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "8px", fontSize: "13px", fontWeight: "700", cursor: deletingEventId === event.id ? "not-allowed" : "pointer", opacity: deletingEventId === event.id ? 0.65 : 1 }}
+                        >
+                          {deletingEventId === event.id ? "Deleting..." : "Delete Event"}
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {defaultTab === "users" && (
+          <div>
+            {userMessage && (
+              <div style={{ padding: "12px 14px", backgroundColor: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", marginBottom: "16px", color: "#a5b4fc", fontSize: "14px", fontWeight: "600" }}>
+                {userMessage}
+              </div>
+            )}
+
+            {loadingUsers ? (
+              <p style={{ color: colors.textMuted }}>Loading users...</p>
+            ) : users.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+                <p style={{ color: colors.textMuted }}>No users found.</p>
+              </div>
+            ) : (
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "12px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                      {['Title', 'Location', 'Date', 'Status', 'Actions'].map(h => (
-                        <th key={h} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>{h}</th>
+                      {["User", "Email", "Role", "Status", "Actions"].map(header => (
+                        <th key={header} style={{ padding: "16px", textAlign: "left", fontSize: "13px", fontWeight: "700", color: colors.textMuted }}>{header}</th>
                       ))}
                     </tr>
                   </thead>
