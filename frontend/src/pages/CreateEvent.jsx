@@ -5,6 +5,7 @@ function CreateEvent() {
   const [description, setDescription] = useState("")
   const [date, setDate] = useState("")
   const [location, setLocation] = useState("")
+  const [capacity, setCapacity] = useState("")
   const [banner, setBanner] = useState(null)
   const [errors, setErrors] = useState({})
   const [events, setEvents] = useState([])
@@ -73,6 +74,10 @@ function CreateEvent() {
       localErrors.location = "Lokacioni është i detyrueshëm."
     }
 
+    if (!capacity || Number(capacity) < 1) {
+      localErrors.capacity = "Kapaciteti duhet të jetë së paku 1."
+    }
+
     if (banner && !banner.type.startsWith("image/")) {
       localErrors.banner = "Lejohen vetëm skedarët imazh."
     }
@@ -98,6 +103,7 @@ function CreateEvent() {
     formData.append("description", description)
     formData.append("date_time", date)
     formData.append("location", location)
+    formData.append("capacity", capacity)
 
     if (banner) {
       formData.append("banner", banner)
@@ -118,6 +124,7 @@ function CreateEvent() {
         setDescription("")
         setDate("")
         setLocation("")
+        setCapacity("")
         setBanner(null)
         fetchEvents()
       } else {
@@ -227,6 +234,25 @@ function CreateEvent() {
             {errors.location && (
               <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
                 {errors.location}
+              </span>
+            )}
+          </div>
+
+          <div style={{ marginBottom: "18px" }}>
+            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
+              Kapaciteti *
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              placeholder="P.sh. 50"
+              style={inputStyle}
+            />
+            {errors.capacity && (
+              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
+                {errors.capacity}
               </span>
             )}
           </div>
