@@ -37,7 +37,7 @@ export default function Register() {
     const res = await fetch("http://localhost:8000/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role })
+      body: JSON.stringify({ name, email, password, role: "attendee" })
     })
     const data = await res.json()
     if (res.ok) {
@@ -46,12 +46,6 @@ export default function Register() {
       setError(data.detail || "Registration failed")
     }
   }
-
-  const roles = [
-    { value: "attendee", label: "👤 Attendee", desc: "Browse and sign up for events." },
-    { value: "organizer", label: "🎯 Organizer", desc: "Create and manage events." },
-    { value: "admin", label: "🛡️ Admin", desc: "Moderate all events and accounts." },
-  ]
 
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -81,22 +75,12 @@ export default function Register() {
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '10px' }}>Select Your Role</label>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {roles.map(r => (
-              <button key={r.value} onClick={() => setRole(r.value)} style={{
-                flex: 1, padding: '10px 6px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-                border: `2px solid ${role === r.value ? colors.accent : colors.border}`,
-                backgroundColor: role === r.value ? colors.accent + '22' : 'transparent',
-                color: role === r.value ? colors.accent : colors.textMuted,
-                transition: 'all 0.2s'
-              }}>
-                {r.label}
-              </button>
-            ))}
+          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '10px' }}>Account Type</label>
+          <div style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${colors.border}`, backgroundColor: colors.inputBg, color: colors.textMain, fontSize: '14px' }}>
+            👤 Attendee
           </div>
           <p style={{ color: colors.textMuted, fontSize: '12px', marginTop: '8px' }}>
-            {roles.find(r => r.value === role)?.desc}
+            Everyone can submit events. Admin will review and approve them.
           </p>
         </div>
 

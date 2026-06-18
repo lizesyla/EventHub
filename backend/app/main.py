@@ -54,16 +54,9 @@ def protected_route(current_user=Depends(get_current_user)):
 
 @app.get("/api/attendee")
 def attendee_route(
-    current_user=Depends(require_role("attendee", "organizer", "admin"))
+    current_user=Depends(require_role("attendee", "admin"))
 ):
     return {"message": "Attendee access granted"}
-
-
-@app.get("/api/organizer")
-def organizer_route(
-    current_user=Depends(require_role("organizer", "admin"))
-):
-    return {"message": "Organizer access granted"}
 
 
 @app.get("/api/admin")

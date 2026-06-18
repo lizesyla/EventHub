@@ -8,6 +8,7 @@ from app.models.user import User
 from app.utils.jwt import verify_access_token
 
 bearer_scheme = HTTPBearer()
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -30,6 +31,24 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if credentials is None:
+        return None
+
+    try:
+        payload = verify_access_token(credentials.credentials)
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    return db.query(User).filter(User.id == int(user_id)).first()
 
 def require_role(*allowed_roles: str):
     def role_checker(current_user: User = Depends(get_current_user)):

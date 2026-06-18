@@ -8,6 +8,7 @@ function CreateEvent() {
   const [banner, setBanner] = useState(null)
   const [errors, setErrors] = useState({})
   const [events, setEvents] = useState([])
+  const [statusNote, setStatusNote] = useState("")
 
   const colors = {
     bgDark: "#0f0c1b",
@@ -113,7 +114,16 @@ function CreateEvent() {
       })
 
       if (response.ok) {
-        alert("Eventi u krijua me sukses!")
+        const data = await response.json()
+        const reviewStatus = data.review_status || "pending"
+
+        setStatusNote(
+          reviewStatus === "pending"
+            ? "Eventi u dërgua për approval nga admini."
+            : "Eventi u publikua menjëherë."
+        )
+
+        alert(reviewStatus === "pending" ? "Eventi u dërgua për approval!" : "Eventi u krijua me sukses!")
         setTitle("")
         setDescription("")
         setDate("")
@@ -162,8 +172,14 @@ function CreateEvent() {
         </h2>
 
         <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
-          Plotësoni detajet e mëposhtme për të publikuar eventin tuaj të ri.
+          Plotësoni detajet e mëposhtme për ta dërguar eventin për approval nga admini.
         </p>
+
+        {statusNote && (
+          <div style={{ marginBottom: "18px", padding: "12px", borderRadius: "10px", backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.textMain, fontSize: "13px" }}>
+            {statusNote}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "18px" }}>

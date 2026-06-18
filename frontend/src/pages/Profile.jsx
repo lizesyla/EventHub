@@ -160,11 +160,11 @@ export default function Profile() {
             <p style={{ color: colors.textMuted, fontSize: '14px', margin: '4px 0 0' }}>{profile.email}</p>
             <span style={{
               display: 'inline-block', marginTop: '6px', padding: '3px 12px', borderRadius: '20px', fontWeight: '600', fontSize: '12px',
-              backgroundColor: profile.role === 'admin' ? '#ef444433' : profile.role === 'organizer' ? '#f9731633' : '#8b5cf633',
-              color: profile.role === 'admin' ? '#ef4444' : profile.role === 'organizer' ? '#f97316' : '#8b5cf6',
-              border: `1px solid ${profile.role === 'admin' ? '#ef4444' : profile.role === 'organizer' ? '#f97316' : '#8b5cf6'}`
+              backgroundColor: profile.role === 'admin' ? '#ef444433' : '#8b5cf633',
+              color: profile.role === 'admin' ? '#ef4444' : '#8b5cf6',
+              border: `1px solid ${profile.role === 'admin' ? '#ef4444' : '#8b5cf6'}`
             }}>
-              {profile.role === 'admin' ? '🛡️ Admin' : profile.role === 'organizer' ? '🎯 Organizer' : '👤 Attendee'}
+              {profile.role === 'admin' ? '🛡️ Admin' : '👤 Attendee'}
             </span>
           </div>
         </div>
@@ -210,11 +210,11 @@ export default function Profile() {
                 <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted, display: 'block', marginBottom: '8px' }}>Role</label>
                 <span style={{
                   display: 'inline-block', padding: '6px 16px', borderRadius: '20px', fontWeight: '600', fontSize: '13px',
-                  backgroundColor: profile.role === 'admin' ? '#ef444433' : profile.role === 'organizer' ? '#f9731633' : '#8b5cf633',
-                  color: profile.role === 'admin' ? '#ef4444' : profile.role === 'organizer' ? '#f97316' : '#8b5cf6',
-                  border: `1px solid ${profile.role === 'admin' ? '#ef4444' : profile.role === 'organizer' ? '#f97316' : '#8b5cf6'}`
+                  backgroundColor: profile.role === 'admin' ? '#ef444433' : '#8b5cf633',
+                  color: profile.role === 'admin' ? '#ef4444' : '#8b5cf6',
+                  border: `1px solid ${profile.role === 'admin' ? '#ef4444' : '#8b5cf6'}`
                 }}>
-                  {profile.role === 'admin' ? '🛡️ Admin' : profile.role === 'organizer' ? '🎯 Organizer' : '👤 Attendee'}
+                  {profile.role === 'admin' ? '🛡️ Admin' : '👤 Attendee'}
                 </span>
                 <p style={{ fontSize: '12px', color: colors.textMuted, marginTop: '6px' }}>Role is assigned during registration.</p>
               </div>

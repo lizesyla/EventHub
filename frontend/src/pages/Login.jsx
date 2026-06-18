@@ -55,7 +55,6 @@ export default function Login({ onLogin }) {
       const role = data.user.role
 
       if (role === "admin") window.location.href = "/admin"
-      else if (role === "organizer") window.location.href = "/organizer"
       else window.location.href = "/"
     } else {
       setError("The email or password you entered is incorrect. Please try again.")

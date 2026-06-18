@@ -6,7 +6,6 @@ import CreateEvent from './pages/CreateEvent'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
-import Organizer from './pages/Organizer'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
 
@@ -54,6 +53,7 @@ function App() {
 
   const linkStyle = { color: '#ffffff', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }
   const activeLinkStyle = { color: '#8b5cf6', textDecoration: 'none', fontWeight: '600', fontSize: '15px' }
+  const isAdmin = token && role === 'admin'
 
   return (
     <BrowserRouter>
@@ -81,25 +81,16 @@ function App() {
               <Link to="/events" style={linkStyle}>Events</Link>
             )}
 
-            {/* ATTENDEE */}
-            {token && role === 'attendee' && (
+            {token && !isAdmin && (
               <>
                 <Link to="/events" style={linkStyle}>Events</Link>
-                <Link to="/profile" style={linkStyle}>My Profile</Link>
-              </>
-            )}
-
-            {/* ORGANIZER */}
-            {token && role === 'organizer' && (
-              <>
-                <Link to="/organizer" style={linkStyle}>My Events</Link>
                 <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
                 <Link to="/profile" style={linkStyle}>My Profile</Link>
               </>
             )}
 
             {/* ADMIN */}
-            {token && role === 'admin' && (
+            {isAdmin && (
               <>
                 <Link to="/admin" style={linkStyle}>All Events</Link>
                 <Link to="/admin/users" style={linkStyle}>Users</Link>
@@ -130,9 +121,6 @@ function App() {
             } />
             <Route path="/create-event" element={
               <ProtectedRoute><CreateEvent /></ProtectedRoute>
-            } />
-            <Route path="/organizer" element={
-              <ProtectedRoute><Organizer /></ProtectedRoute>
             } />
             <Route path="/admin" element={
               <ProtectedRoute><Admin defaultTab="events" /></ProtectedRoute>

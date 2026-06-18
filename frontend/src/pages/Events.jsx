@@ -70,7 +70,7 @@ export default function Home() {
         <div style={{ display: 'flex', gap: '60px', justifyContent: 'center', flexWrap: 'wrap' }}>
           {[
             { value: events.length || '0', label: 'Upcoming Events' },
-            { value: '3', label: 'User Roles' },
+            { value: '2', label: 'User Roles' },
             { value: '100%', label: 'Free to Use' },
           ].map((stat, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
@@ -94,7 +94,7 @@ export default function Home() {
           {[
             { step: '01', icon: '🔍', title: 'Discover Events', desc: 'Browse upcoming company events — from lunch-and-learns to game nights and tech talks.' },
             { step: '02', icon: '✅', title: 'RSVP Instantly', desc: 'Sign up for events with one click. Cancel anytime. Spots are limited — first come, first served.' },
-            { step: '03', icon: '📊', title: 'Track & Manage', desc: 'Organizers see who is coming. Admins oversee everything. Everyone stays informed.' },
+            { step: '03', icon: '📊', title: 'Track & Manage', desc: 'Admins oversee everything. Everyone stays informed.' },
           ].map((item, i) => (
             <div key={i} style={{ backgroundColor: colors.cardBg, padding: '32px', borderRadius: '16px', border: `1px solid ${colors.border}`, position: 'relative' }}>
               <div style={{ fontSize: '13px', fontWeight: '700', color: colors.accent, marginBottom: '16px', opacity: 0.6 }}>{item.step}</div>
