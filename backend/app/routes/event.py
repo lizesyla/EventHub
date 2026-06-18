@@ -20,6 +20,37 @@ def ensure_owner(event: Event, current_user: User):
         raise HTTPException(status_code=403, detail="Nuk keni leje për këtë event.")
 
 
+def get_going_count(db: Session, event_id: int) -> int:
+    return db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going"
+    ).count()
+
+
+def serialize_event(event: Event, db: Session) -> dict:
+    going_count = get_going_count(db, event.id)
+    spots_left = None if event.capacity is None else max(event.capacity - going_count, 0)
+    organizer = db.query(User).filter(User.id == event.organizer_id).first()
+
+    return {
+        "id": event.id,
+        "title": event.title,
+        "description": event.description,
+        "date_time": event.date_time,
+        "location": event.location,
+        "capacity": event.capacity,
+        "banner_url": event.banner_url,
+        "status": event.status,
+        "organizer_id": event.organizer_id,
+        "organizer_name": organizer.name if organizer else None,
+        "organizer_email": organizer.email if organizer else None,
+        "created_at": event.created_at,
+        "updated_at": event.updated_at,
+        "going_count": going_count,
+        "spots_left": spots_left,
+    }
+
+
 @router.post("")
 async def create_event(
     title: str = Form(...),
@@ -79,14 +110,32 @@ async def create_event(
 
 @router.get("")
 def get_events(db: Session = Depends(get_db)):
-    return db.query(Event).all()
+    events = db.query(Event).all()
+    return [serialize_event(event, db) for event in events]
 
 
 @router.get("/history")
 def get_event_history(db: Session = Depends(get_db)):
-    return db.query(Event).filter(
+    events = db.query(Event).filter(
         Event.status.in_(["past", "cancelled"])
     ).all()
+    return [serialize_event(event, db) for event in events]
+
+
+@router.get("/my-rsvps")
+def get_my_rsvps(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "attendee":
+        return {"event_ids": []}
+
+    rsvps = db.query(RSVP).filter(
+        RSVP.user_id == current_user.id,
+        RSVP.status == "going"
+    ).all()
+
+    return {"event_ids": [rsvp.event_id for rsvp in rsvps]}
 
 @router.put("/{event_id}")
 def update_event(
@@ -178,6 +227,26 @@ def cancel_event(
 
     return {"message": "Eventi u anulua dhe RSVP-të u liruan.", "event": event}
 
+@router.delete("/{event_id}")
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+
+    if not event:
+        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
+
+    ensure_owner(event, current_user)
+
+    db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+    db.delete(event)
+    db.commit()
+
+    return {"message": "Eventi u fshi me sukses."}
+
+
 @router.post("/{event_id}/rsvp")
 def rsvp_event(
     event_id: int,
@@ -196,11 +265,10 @@ def rsvp_event(
 
     existing_rsvp = db.query(RSVP).filter(
         RSVP.event_id == event_id,
-        RSVP.user_id == current_user.id,
-        RSVP.status == "going"
+        RSVP.user_id == current_user.id
     ).first()
 
-    if existing_rsvp:
+    if existing_rsvp and existing_rsvp.status == "going":
         raise HTTPException(status_code=409, detail="Ju tashmë keni bërë RSVP për këtë event.")
 
     current_count = db.query(RSVP).filter(
@@ -211,13 +279,18 @@ def rsvp_event(
     if event.capacity is not None and current_count >= event.capacity:
         raise HTTPException(status_code=400, detail="Eventi është full. Nuk ka vende të lira.")
 
-    rsvp = RSVP(
-        user_id=current_user.id,
-        event_id=event_id,
-        status="going"
-    )
+    if existing_rsvp:
+        existing_rsvp.status = "going"
+        existing_rsvp.cancelled_at = None
+        rsvp = existing_rsvp
+    else:
+        rsvp = RSVP(
+            user_id=current_user.id,
+            event_id=event_id,
+            status="going"
+        )
+        db.add(rsvp)
 
-    db.add(rsvp)
     db.commit()
     db.refresh(rsvp)
 
@@ -226,7 +299,8 @@ def rsvp_event(
         "event_id": event_id,
         "user_id": current_user.id,
         "spots_taken": current_count + 1,
-        "capacity": event.capacity
+        "capacity": event.capacity,
+        "spots_left": None if event.capacity is None else max(event.capacity - (current_count + 1), 0)
     }
 
 
@@ -251,7 +325,16 @@ def cancel_rsvp(
     db.commit()
     db.refresh(rsvp)
 
-    return {"message": "RSVP u anulua me sukses."}
+    event = db.query(Event).filter(Event.id == event_id).first()
+    going_count = get_going_count(db, event_id)
+
+    return {
+        "message": "RSVP u anulua me sukses.",
+        "event_id": event_id,
+        "spots_taken": going_count,
+        "capacity": event.capacity if event else None,
+        "spots_left": None if not event or event.capacity is None else max(event.capacity - going_count, 0)
+    }
 
 
 @router.get("/{event_id}/rsvp-count")
