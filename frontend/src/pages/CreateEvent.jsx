@@ -1,410 +1,201 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function CreateEvent() {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [date, setDate] = useState("")
-  const [location, setLocation] = useState("")
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [date, setDate] = useState('')
+  const [location, setLocation] = useState('')
+  const [capacity, setCapacity] = useState('')
   const [banner, setBanner] = useState(null)
   const [errors, setErrors] = useState({})
-  const [events, setEvents] = useState([])
-  const [statusNote, setStatusNote] = useState("")
-
-  const colors = {
-    bgDark: "#0f0c1b",
-    cardBg: "#1a162e",
-    inputBg: "#252142",
-    textMain: "#ffffff",
-    textMuted: "#b3b0cd",
-    accent: "#8b5cf6",
-    accentHover: "#7c3aed",
-    border: "#2d294e",
-    error: "#ef4444",
-  }
-
-  const inputStyle = {
-    width: "100%",
-    padding: "12px",
-    borderRadius: "8px",
-    border: `1px solid ${colors.border}`,
-    backgroundColor: colors.inputBg,
-    color: colors.textMain,
-    fontSize: "14px",
-    marginTop: "6px",
-    boxSizing: "border-box",
-    outline: "none",
-  }
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token")
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
-
-const fetchEvents = useCallback(async () => {
-    try {
-      const res = await fetch("http://localhost:8000/api/events", {
-        headers: getAuthHeaders(),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        setEvents(Array.isArray(data) ? data : [])
-      }
-    } catch (err) {
-      console.error("Gabim gjatë marrjes së eventeve:", err)
-    }
-  }, [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchEvents()
-  }, [fetchEvents])
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const validateForm = () => {
-    const localErrors = {}
-
-    if (!title.trim() || title.length < 3) {
-      localErrors.title = "Titulli duhet të ketë së paku 3 karaktere."
-    }
-
-    if (!date) {
-      localErrors.date = "Data është e detyrueshme."
-    }
-
-    if (!location.trim()) {
-      localErrors.location = "Lokacioni është i detyrueshëm."
-    }
-
-    if (banner && !banner.type.startsWith("image/")) {
-      localErrors.banner = "Lejohen vetëm skedarët imazh."
-    }
-
+    let localErrors = {}
+    if (!title.trim() || title.length < 3) localErrors.title = "Title must be at least 3 characters."
+    if (!date) localErrors.date = "Date is required."
+    if (!location.trim()) localErrors.location = "Location is required."
+    if (banner && !banner.type.startsWith('image/')) localErrors.banner = "Only image files are allowed."
     setErrors(localErrors)
     return Object.keys(localErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     const token = localStorage.getItem("token")
-
     if (!token) {
-      alert("Gabim: Not authenticated. Ju lutem bëni login përsëri.")
+      alert("You must be logged in as an Organizer!")
       return
     }
 
+    setLoading(true)
     const formData = new FormData()
-    formData.append("title", title)
-    formData.append("description", description)
-    formData.append("date_time", date)
-    formData.append("location", location)
-
-    if (banner) {
-      formData.append("banner", banner)
-    }
+    formData.append('title', title)
+    formData.append('description', description)
+    formData.append('date_time', date)
+    formData.append('location', location)
+    if (capacity) formData.append('capacity', capacity)
+    if (banner) formData.append('banner', banner)
 
     try {
-      const response = await fetch("http://localhost:8000/api/events", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch('http://localhost:8000/api/events', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       })
 
       if (response.ok) {
-        const data = await response.json()
-        const reviewStatus = data.review_status || "pending"
-
-        setStatusNote(
-          reviewStatus === "pending"
-            ? "Eventi u dërgua për approval nga admini."
-            : "Eventi u publikua menjëherë."
-        )
-
-        alert(reviewStatus === "pending" ? "Eventi u dërgua për approval!" : "Eventi u krijua me sukses!")
-        setTitle("")
-        setDescription("")
-        setDate("")
-        setLocation("")
+        setSuccess("Event published successfully!")
+        setTitle('')
+        setDescription('')
+        setDate('')
+        setLocation('')
+        setCapacity('')
         setBanner(null)
-        fetchEvents()
+        setErrors({})
+        setTimeout(() => {
+          navigate('/organizer')
+        }, 1500)
       } else {
         const errorData = await response.json()
-        alert(`Gabim: ${errorData.detail || "Diçka shkoi keq"}`)
+        alert(`Error: ${errorData.detail || 'Something went wrong'}`)
       }
     } catch (err) {
-      console.error(err)
-      alert("Nuk u realizua lidhja me serverin.")
+      alert("Could not connect to the server.")
+    } finally {
+      setLoading(false)
     }
   }
 
+  const colors = {
+    bgDark: '#0f172a',
+    cardBg: '#1e293b',
+    inputBg: '#0f172a',
+    textMain: '#ffffff',
+    textMuted: '#94a3b8',
+    accent: '#6366f1',
+    border: '#334155',
+    error: '#ef4444',
+    green: '#10b981',
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '10px',
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.inputBg,
+    color: colors.textMain,
+    fontSize: '14px',
+    marginTop: '6px',
+    boxSizing: 'border-box',
+    outline: 'none',
+  }
+
   return (
-    <div
-      style={{
-        backgroundColor: colors.bgDark,
-        color: colors.textMain,
-        minHeight: "100vh",
-        padding: "40px 20px",
-        fontFamily: "'Inter', system-ui, sans-serif",
-        display: "flex",
-        justifyContent: "center",
-        gap: "40px",
-        flexWrap: "wrap",
-      }}
-    >
-      <div
-        style={{
-          flex: "1",
-          minWidth: "320px",
-          maxWidth: "450px",
-          backgroundColor: colors.cardBg,
-          padding: "30px",
-          borderRadius: "16px",
-          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
-          border: `1px solid ${colors.border}`,
-          height: "fit-content",
-        }}
-      >
-        <h2 style={{ fontSize: "24px", marginBottom: "8px", fontWeight: "700" }}>
-          Krijo Event
-        </h2>
+    <div style={{
+      backgroundColor: colors.bgDark,
+      minHeight: '100vh',
+      padding: '60px 20px',
+      fontFamily: "'Inter', sans-serif",
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '520px',
+        backgroundColor: colors.cardBg,
+        padding: '40px',
+        borderRadius: '24px',
+        border: `1px solid ${colors.border}`,
+      }}>
 
-        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
-          Plotësoni detajet e mëposhtme për ta dërguar eventin për approval nga admini.
-        </p>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <p style={{ color: colors.accent, fontSize: '12px', fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 12px' }}>ORGANIZER</p>
+          <h2 style={{ fontSize: '28px', fontWeight: '800', color: colors.textMain, margin: '0 0 8px', letterSpacing: '-0.5px' }}>Create New Event</h2>
+          <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>Fill in the details below to publish your event.</p>
+        </div>
 
-        {statusNote && (
-          <div style={{ marginBottom: "18px", padding: "12px", borderRadius: "10px", backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.textMain, fontSize: "13px" }}>
-            {statusNote}
+        {/* Success */}
+        {success && (
+          <div style={{ padding: '14px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            ✅ {success} — Redirecting to My Events...
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
-              Titulli i Eventit *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="P.sh. Hackathon 2026"
-              style={inputStyle}
-            />
-            {errors.title && (
-              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
-                {errors.title}
-              </span>
-            )}
+
+          {/* Title */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Event Title *</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Tech Talk 2026" style={inputStyle} />
+            {errors.title && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.title}</span>}
           </div>
 
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
-              Përshkrimi
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tregoni më shumë rreth organizimit..."
-              style={{ ...inputStyle, height: "100px", resize: "vertical" }}
-            />
+          {/* Description */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people what this event is about..." style={{ ...inputStyle, height: '100px', resize: 'vertical' }} />
           </div>
 
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
-              Data dhe Koha *
-            </label>
-            <input
-              type="datetime-local"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={inputStyle}
-            />
-            {errors.date && (
-              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
-                {errors.date}
-              </span>
-            )}
+          {/* Date */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Date & Time *</label>
+            <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+            {errors.date && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
           </div>
 
-          <div style={{ marginBottom: "18px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
-              Lokacioni *
-            </label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="P.sh. Amfiteatri i FIEK"
-              style={inputStyle}
-            />
-            {errors.location && (
-              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
-                {errors.location}
-              </span>
-            )}
+          {/* Location */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Location *</label>
+            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Conference Room A" style={inputStyle} />
+            {errors.location && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.location}</span>}
           </div>
 
-          <div style={{ marginBottom: "24px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: colors.textMuted }}>
-              Kopertina (Banner Image)
-            </label>
-            <div
-              style={{
-                border: `2px dashed ${colors.border}`,
-                padding: "15px",
-                borderRadius: "8px",
-                marginTop: "6px",
-                backgroundColor: colors.bgDark,
-                textAlign: "center",
-              }}
-            >
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setBanner(e.target.files[0] || null)}
-                style={{ color: colors.textMuted, fontSize: "13px" }}
-              />
+          {/* Capacity */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Capacity <span style={{ color: colors.textMuted, fontWeight: '400' }}>(optional)</span></label>
+            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. 50" style={inputStyle} min="1" />
+          </div>
+
+          {/* Banner */}
+          <div style={{ marginBottom: '32px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Banner Image <span style={{ color: colors.textMuted, fontWeight: '400' }}>(optional)</span></label>
+            <div style={{ border: `2px dashed ${colors.border}`, padding: '20px', borderRadius: '10px', marginTop: '6px', backgroundColor: colors.inputBg, textAlign: 'center', cursor: 'pointer' }}>
+              <p style={{ color: colors.textMuted, fontSize: '13px', margin: '0 0 8px' }}>📸 Click to upload image</p>
+              <input type="file" accept="image/*" onChange={e => setBanner(e.target.files[0] || null)} style={{ color: colors.textMuted, fontSize: '13px' }} />
+              {banner && <p style={{ color: colors.green, fontSize: '12px', margin: '8px 0 0', fontWeight: '600' }}>✅ {banner.name}</p>}
             </div>
-            {errors.banner && (
-              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
-                {errors.banner}
-              </span>
-            )}
+            {errors.banner && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.banner}</span>}
           </div>
 
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              padding: "14px",
-              backgroundColor: colors.accent,
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "16px",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(139, 92, 246, 0.4)",
-            }}
-          >
-            Publiko Eventin
-          </button>
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button type="button" onClick={() => navigate('/organizer')} style={{
+              flex: 1, padding: '14px', backgroundColor: 'transparent', color: colors.textMuted,
+              border: `1px solid ${colors.border}`, borderRadius: '10px', fontSize: '14px',
+              fontWeight: '600', cursor: 'pointer'
+            }}>
+              ← Back
+            </button>
+            <button type="submit" disabled={loading} style={{
+              flex: 2, padding: '14px', backgroundColor: loading ? '#4338ca' : colors.accent,
+              color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px',
+              fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.4)'
+            }}>
+              {loading ? 'Publishing...' : 'Publish Event →'}
+            </button>
+          </div>
+
         </form>
-      </div>
-
-      <div style={{ flex: "2", minWidth: "350px", maxWidth: "800px" }}>
-        <h2 style={{ fontSize: "24px", marginBottom: "8px", fontWeight: "700" }}>
-          Event Board
-        </h2>
-
-        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
-          Lista e të gjitha ngjarjeve aktive të krijuara brenda platformës.
-        </p>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: "20px",
-          }}
-        >
-          {events.length === 0 ? (
-            <div
-              style={{
-                gridColumn: "1/-1",
-                textAlign: "center",
-                padding: "40px",
-                backgroundColor: colors.cardBg,
-                borderRadius: "12px",
-                border: `1px solid ${colors.border}`,
-              }}
-            >
-              <p style={{ color: colors.textMuted, margin: 0 }}>
-                Nuk ka asnjë event të krijuar ende.
-              </p>
-            </div>
-          ) : (
-            events.map((event) => (
-              <div
-                key={event.id}
-                style={{
-                  backgroundColor: colors.cardBg,
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-                  border: `1px solid ${colors.border}`,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {event.banner_url ? (
-                  <img
-                    src={event.banner_url}
-                    alt="Banner"
-                    style={{ width: "100%", height: "160px", objectFit: "cover" }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "160px",
-                      backgroundColor: colors.inputBg,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: colors.textMuted,
-                      fontSize: "14px",
-                    }}
-                  >
-                    🖼️ Pa Kopertinë
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    padding: "20px",
-                    flexGrow: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: "0 0 10px 0", fontSize: "18px", fontWeight: "600" }}>
-                      {event.title}
-                    </h3>
-
-                    <p style={{ fontSize: "13px", color: colors.textMuted, margin: "0 0 12px 0", lineHeight: "1.5" }}>
-                      <span>📍 {event.location}</span>
-                      <br />
-                      <span>
-                        📅{" "}
-                        {event.date_time
-                          ? new Date(event.date_time).toLocaleString("sq-AL", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : ""}
-                      </span>
-                    </p>
-
-                    <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: colors.textMuted }}>
-                      {event.description}
-                    </p>
-
-                    <p style={{ margin: 0, fontSize: "13px", color: colors.textMuted }}>
-                      👥 Capacity: {event.capacity ?? "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   )
