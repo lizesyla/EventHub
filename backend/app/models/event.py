@@ -13,8 +13,10 @@ class Event(Base):
     capacity = Column(Integer, nullable=True)
     banner_url = Column(Text, nullable=True)
     status = Column(String(20), nullable=True, default="upcoming")
+    pending_reason = Column(String(50), nullable=True)
     organizer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
 
     

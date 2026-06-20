@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { useState } from 'react'
 import './App.css'
 import Profile from './pages/Profile'
 import CreateEvent from './pages/CreateEvent'
+import MyEvents from './pages/MyEvents'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
@@ -59,60 +60,50 @@ function App() {
     <BrowserRouter>
       <div style={{ backgroundColor: '#0f0c1b', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
 
-        <header style={{
-          backgroundColor: '#1a162e',
-          borderBottom: '1px solid #2d294e',
-          padding: '15px 40px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
-              Event<span style={{ color: '#8b5cf6' }}>Hub</span>
-            </h1>
-          </Link>
+        {/* HEADER — hidden for admin, since Admin has its own sidebar */}
+        {!isAdmin && (
+          <header style={{
+            backgroundColor: '#1a162e',
+            borderBottom: '1px solid #2d294e',
+            padding: '15px 40px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>
+                Event<span style={{ color: '#8b5cf6' }}>Hub</span>
+              </h1>
+            </Link>
 
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <Link to="/" style={linkStyle}>Home</Link>
+            <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+              <Link to="/" style={linkStyle}>Home</Link>
 
-            {/* PA LOGIN */}
-            {!token && (
-              <Link to="/events" style={linkStyle}>Events</Link>
-            )}
-
-            {token && !isAdmin && (
-              <>
+              {!token && (
                 <Link to="/events" style={linkStyle}>Events</Link>
-                <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
-                <Link to="/profile" style={linkStyle}>My Profile</Link>
-              </>
-            )}
+              )}
 
-            {/* ADMIN */}
-          {/* ADMIN */}
-{isAdmin && (
-  <>
-    <Link to="/events" style={linkStyle}>Events</Link>
-    <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
-    <Link to="/admin" style={linkStyle}>All Events</Link>
-    <Link to="/admin/users" style={linkStyle}>Users</Link>
-    <Link to="/profile" style={linkStyle}>My Profile</Link>
-  </>
-)}
-            
+              {token && (
+                <>
+                  <Link to="/events" style={linkStyle}>Events</Link>
+                  <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+                  <Link to="/my-events" style={linkStyle}>My Events</Link>
+                  <Link to="/profile" style={linkStyle}>My Profile</Link>
+                </>
+              )}
 
-            {token ? (
-              <button onClick={handleLogout} style={{ padding: '7px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                Sign Out
-              </button>
-            ) : (
-              <Link to="/login" style={{ padding: '7px 16px', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
-                Sign In
-              </Link>
-            )}
-          </div>
-        </header>
+              {token ? (
+                <button onClick={handleLogout} style={{ padding: '7px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                  Sign Out
+                </button>
+              ) : (
+                <Link to="/login" style={{ padding: '7px 16px', backgroundColor: '#8b5cf6', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+                  Sign In
+                </Link>
+              )}
+            </div>
+          </header>
+        )}
 
         <main>
           <Routes>
@@ -126,12 +117,13 @@ function App() {
             <Route path="/create-event" element={
               <ProtectedRoute><CreateEvent /></ProtectedRoute>
             } />
+            <Route path="/my-events" element={
+              <ProtectedRoute><MyEvents /></ProtectedRoute>
+            } />
             <Route path="/admin" element={
-              <ProtectedRoute><Admin defaultTab="events" /></ProtectedRoute>
+              <ProtectedRoute><Admin /></ProtectedRoute>
             } />
-            <Route path="/admin/users" element={
-              <ProtectedRoute><Admin defaultTab="users" /></ProtectedRoute>
-            } />
+            <Route path="/admin/users" element={<Navigate to="/admin" replace />} />
           </Routes>
         </main>
       </div>
