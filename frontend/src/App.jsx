@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
+import AttendanceDashboard from "./pages/AttendanceDashboard";
 
 function parseRole() {
   try {
@@ -89,17 +90,16 @@ function App() {
               </>
             )}
 
-            {/* ADMIN */}
           {/* ADMIN */}
-{isAdmin && (
-  <>
-    <Link to="/events" style={linkStyle}>Events</Link>
-    <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
-    <Link to="/admin" style={linkStyle}>All Events</Link>
-    <Link to="/admin/users" style={linkStyle}>Users</Link>
-    <Link to="/profile" style={linkStyle}>My Profile</Link>
-  </>
-)}
+          {isAdmin && (
+            <>
+              <Link to="/events" style={linkStyle}>Events</Link>
+              <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+              <Link to="/admin" style={linkStyle}>All Events</Link>
+              <Link to="/admin/users" style={linkStyle}>Users</Link>
+              <Link to="/profile" style={linkStyle}>My Profile</Link>
+            </>
+          )}
             
 
             {token ? (
@@ -131,6 +131,9 @@ function App() {
             } />
             <Route path="/admin/users" element={
               <ProtectedRoute><Admin defaultTab="users" /></ProtectedRoute>
+            } />
+            <Route path="/admin/attendance" element={
+              <ProtectedRoute><AttendanceDashboard /></ProtectedRoute>
             } />
           </Routes>
         </main>
