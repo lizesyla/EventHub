@@ -92,32 +92,27 @@ export default function Login({ onLogin }) {
       const role = data.user.role
       if (role === "admin") window.location.href = "/admin"
       else window.location.href = "/"
-    } else {
-      // Shfaq mesazhin e saktë nga backend
-      if (data.detail && data.detail.includes("pending admin approval")) {
-        setIsPending(true)
-      } else {
-        setError(data.detail || "The email or password you entered is incorrect.")
-      }
+    } catch {
+      setError("Could not connect to the server.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ backgroundColor: colors.cardBg, padding: "36px", borderRadius: "16px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
-        <h2 style={{ color: colors.textMain, fontSize: "24px", fontWeight: "700", margin: "0 0 8px 0" }}>Welcome back</h2>
-        <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "28px" }}>EventHub · Internal Platform</p>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@company.com" style={inputStyle} />
-        </div>
-        
+      <div style={{ backgroundColor: colors.cardBg, padding: "40px 36px", borderRadius: "20px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: colors.textMuted, textDecoration: "none", fontSize: "14px", marginBottom: "24px" }}
+          onMouseEnter={e => e.currentTarget.style.color = colors.accent}
+          onMouseLeave={e => e.currentTarget.style.color = colors.textMuted}
+        >
+          ← Back to Home
+        </Link>
 
         <div style={{ marginBottom: "32px" }}>
           <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENTHUB</p>
           <h2 style={{ color: colors.textMain, fontSize: "26px", fontWeight: "800", margin: "0 0 8px", letterSpacing: "-0.5px" }}>Welcome back</h2>
-          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform - Genpact</p>
+          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform · Genpact</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -155,7 +150,7 @@ export default function Login({ onLogin }) {
             <div style={{ padding: "16px", backgroundColor: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "10px", marginBottom: "16px" }}>
               <p style={{ color: colors.warning, fontSize: "14px", fontWeight: "700", margin: "0 0 6px" }}>Account Pending Approval</p>
               <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}>
-                Your organizer account is awaiting admin approval. You will be able to sign in once approved.
+                Your account is awaiting admin approval. You will be able to sign in once approved.
               </p>
             </div>
           )}
@@ -165,7 +160,7 @@ export default function Login({ onLogin }) {
             disabled={isSubmitting}
             style={{ width: "100%", padding: "14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.75 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "all 0.2s" }}
           >
-            {isSubmitting ? "Signing in..." : "Sign In ->"}
+            {isSubmitting ? "Signing in..." : "Sign In →"}
           </button>
         </form>
 

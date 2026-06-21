@@ -231,78 +231,7 @@ export default function Organizer() {
                       </button>
                     </div>
                   </div>
-
-                  <p style={{ color: colors.textMuted, fontSize: "13px", margin: "0 0 4px" }}>
-                    📍 {event.location}
-                  </p>
-
-                  <p style={{ color: colors.textMuted, fontSize: "13px", margin: "0 0 4px" }}>
-                    📅{" "}
-                    {event.date_time
-                      ? new Date(event.date_time).toLocaleString("en-US", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })
-                      : ""}
-                  </p>
-
-                  <p style={{ color: colors.textMuted, fontSize: "13px", margin: "0 0 16px" }}>
-                    👥 Capacity: {event.capacity ?? "N/A"}
-                  </p>
-
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    <button
-                      onClick={() => editEvent(event)}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        backgroundColor: colors.accent,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => archiveEvent(event.id)}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        backgroundColor: "transparent",
-                        color: colors.orange,
-                        border: `1px solid ${colors.orange}`,
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Archive
-                    </button>
-
-                    <button
-                      onClick={() => cancelEvent(event.id)}
-                      style={{
-                        flex: 1,
-                        padding: "8px",
-                        backgroundColor: "transparent",
-                        color: colors.error,
-                        border: `1px solid ${colors.error}`,
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                </article>
               )
             })}
           </div>

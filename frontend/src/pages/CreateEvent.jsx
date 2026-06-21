@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-=======
-import { useState, useEffect, useCallback } from "react"
->>>>>>> Remove-Organizer
+import { useState } from "react"
 
 function CreateEvent() {
   const [title, setTitle] = useState('')
@@ -13,12 +9,9 @@ function CreateEvent() {
   const [capacity, setCapacity] = useState('')
   const [banner, setBanner] = useState(null)
   const [errors, setErrors] = useState({})
-<<<<<<< HEAD
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-=======
-  const [events, setEvents] = useState([])
   const [statusNote, setStatusNote] = useState("")
 
   const colors = {
@@ -31,6 +24,7 @@ function CreateEvent() {
     accentHover: "#7c3aed",
     border: "#2d294e",
     error: "#ef4444",
+    green: "#10b981",
   }
 
   const inputStyle = {
@@ -45,32 +39,6 @@ function CreateEvent() {
     boxSizing: "border-box",
     outline: "none",
   }
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token")
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
-
-const fetchEvents = useCallback(async () => {
-    try {
-      const res = await fetch("http://localhost:8000/api/events", {
-        headers: getAuthHeaders(),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        setEvents(Array.isArray(data) ? data : [])
-      }
-    } catch (err) {
-      console.error("Gabim gjatë marrjes së eventeve:", err)
-    }
-  }, [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchEvents()
-  }, [fetchEvents])
->>>>>>> Remove-Organizer
 
   const validateForm = () => {
     let localErrors = {}
@@ -110,14 +78,12 @@ const fetchEvents = useCallback(async () => {
       })
 
       if (response.ok) {
-<<<<<<< HEAD
         setSuccess("Event published successfully!")
         setTitle('')
         setDescription('')
         setDate('')
         setLocation('')
         setCapacity('')
-=======
         const data = await response.json()
         const reviewStatus = data.review_status || "pending"
 
@@ -132,7 +98,6 @@ const fetchEvents = useCallback(async () => {
         setDescription("")
         setDate("")
         setLocation("")
->>>>>>> Remove-Organizer
         setBanner(null)
         setErrors({})
         setTimeout(() => {
@@ -142,6 +107,7 @@ const fetchEvents = useCallback(async () => {
         const errorData = await response.json()
         alert(`Error: ${errorData.detail || 'Something went wrong'}`)
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       alert("Could not connect to the server.")
     } finally {
@@ -149,31 +115,30 @@ const fetchEvents = useCallback(async () => {
     }
   }
 
-  const colors = {
-    bgDark: '#0f172a',
-    cardBg: '#1e293b',
-    inputBg: '#0f172a',
-    textMain: '#ffffff',
-    textMuted: '#94a3b8',
-    accent: '#6366f1',
-    border: '#334155',
-    error: '#ef4444',
-    green: '#10b981',
-  }
+  // const colors = {
+  //   bgDark: '#0f172a',
+  //   cardBg: '#1e293b',
+  //   inputBg: '#0f172a',
+  //   textMain: '#ffffff',
+  //   textMuted: '#94a3b8',
+  //   accent: '#6366f1',
+  //   border: '#334155',
+  //   error: '#ef4444',
+  //   green: '#10b981',
+  // }
 
-<<<<<<< HEAD
-  const inputStyle = {
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: `1px solid ${colors.border}`,
-    backgroundColor: colors.inputBg,
-    color: colors.textMain,
-    fontSize: '14px',
-    marginTop: '6px',
-    boxSizing: 'border-box',
-    outline: 'none',
-  }
+  // const inputStyle = {
+  //   width: '100%',
+  //   padding: '12px 14px',
+  //   borderRadius: '10px',
+  //   border: `1px solid ${colors.border}`,
+  //   backgroundColor: colors.inputBg,
+  //   color: colors.textMain,
+  //   fontSize: '14px',
+  //   marginTop: '6px',
+  //   boxSizing: 'border-box',
+  //   outline: 'none',
+  // }
 
   return (
     <div style={{
@@ -207,11 +172,9 @@ const fetchEvents = useCallback(async () => {
             ✅ {success} — Redirecting to My Events...
           </div>
         )}
-=======
         <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
           Plotësoni detajet e mëposhtme për ta dërguar eventin për approval nga admini.
         </p>
->>>>>>> Remove-Organizer
 
         {statusNote && (
           <div style={{ marginBottom: "18px", padding: "12px", borderRadius: "10px", backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.textMain, fontSize: "13px" }}>

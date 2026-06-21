@@ -73,7 +73,7 @@ export default function Profile() {
   const token = localStorage.getItem("token")
   const headers = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
+    "Authorization": `Bearer ${token}`,
   }
   const strength = getStrength(newPassword)
 
@@ -86,6 +86,8 @@ export default function Profile() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+    // headers is derived from token which is stable for the session
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleSave() {
