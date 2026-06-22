@@ -3,6 +3,7 @@ import os
 import shutil
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -44,7 +45,7 @@ def serialize_event(event: Event, db: Session, current_user: User | None = None)
         spots_left = max(event.capacity - going_count, 0)
         is_full = going_count >= event.capacity
 
-    organizer = db.query(User).filter(User.id == event.organizer_id).first()
+    creator = db.query(User).filter(User.id == event.organizer_id).first()
     user_has_rsvped = False
 
     if current_user:
@@ -63,9 +64,9 @@ def serialize_event(event: Event, db: Session, current_user: User | None = None)
         "capacity": event.capacity,
         "banner_url": event.banner_url,
         "status": event.status,
-        "organizer_id": event.organizer_id,
-        "organizer_name": organizer.name if organizer else None,
-        "organizer_email": organizer.email if organizer else None,
+        "creator_id": event.organizer_id,
+        "creator_name": creator.name if creator else None,
+        "creator_email": creator.email if creator else None,
         "created_at": event.created_at,
         "updated_at": event.updated_at,
         "going_count": going_count,
@@ -96,6 +97,9 @@ async def create_event(
         event_date = datetime.fromisoformat(date_time)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format.")
+
+    if capacity is not None and capacity < 1:
+        raise HTTPException(status_code=400, detail="Capacity must be at least 1.")
 
     banner_url = None
 
@@ -143,6 +147,9 @@ def get_events(
     if current_user is None or current_user.role != "admin":
         query = query.filter(Event.status != "pending")
 
+    if current_user is not None and current_user.role != "admin":
+        query = query.filter(Event.organizer_id != current_user.id)
+
     events = query.order_by(Event.date_time.asc()).all()
     return [serialize_event(event, db, current_user) for event in events]
 
@@ -171,6 +178,18 @@ def get_my_rsvps(
     return {"event_ids": [rsvp.event_id for rsvp in rsvps]}
 
 
+@router.get("/mine")
+def get_my_events(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    events = db.query(Event).filter(
+        Event.organizer_id == current_user.id,
+    ).order_by(Event.date_time.desc()).all()
+
+    return [serialize_event(event, db, current_user) for event in events]
+
+
 @router.patch("/{event_id}/approve")
 def approve_event(
     event_id: int,
@@ -179,7 +198,7 @@ def approve_event(
 ):
     ensure_admin(current_user)
 
-    event = db.query(Event).filter(Event.id == event_id).first()
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
@@ -198,7 +217,7 @@ def reject_event(
 ):
     ensure_admin(current_user)
 
-    event = db.query(Event).filter(Event.id == event_id).first()
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
@@ -221,7 +240,7 @@ def update_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    event = db.query(Event).filter(Event.id == event_id).first()
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -248,8 +267,14 @@ def update_event(
             raise HTTPException(status_code=400, detail="Invalid date format.")
 
     if capacity is not None:
-        if capacity < 0:
-            raise HTTPException(status_code=400, detail="Capacity cannot be negative.")
+        if capacity < 1:
+            raise HTTPException(status_code=400, detail="Capacity must be at least 1.")
+        going_count = get_going_count(db, event_id)
+        if capacity < going_count:
+            raise HTTPException(
+                status_code=400,
+                detail="Capacity cannot be lower than the current RSVP count.",
+            )
         event.capacity = capacity
 
     db.commit()
@@ -284,7 +309,7 @@ def cancel_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    event = db.query(Event).filter(Event.id == event_id).first()
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
@@ -327,7 +352,7 @@ def rsvp_event(
     if current_user.role != "attendee":
         raise HTTPException(status_code=403, detail="Only attendees can RSVP.")
 
-    event = db.query(Event).filter(Event.id == event_id).first()
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
@@ -350,19 +375,24 @@ def rsvp_event(
     if event.capacity is not None and current_count >= event.capacity:
         raise HTTPException(status_code=400, detail="This event is full.")
 
-    if existing_rsvp:
-        existing_rsvp.status = "going"
-        existing_rsvp.cancelled_at = None
-        rsvp = existing_rsvp
-    else:
-        rsvp = RSVP(
-            user_id=current_user.id,
-            event_id=event_id,
-            status="going",
-        )
-        db.add(rsvp)
+    try:
+        if existing_rsvp:
+            existing_rsvp.status = "going"
+            existing_rsvp.cancelled_at = None
+            rsvp = existing_rsvp
+        else:
+            rsvp = RSVP(
+                user_id=current_user.id,
+                event_id=event_id,
+                status="going",
+            )
+            db.add(rsvp)
 
-    db.commit()
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="You have already RSVP'd to this event.")
+
     db.refresh(rsvp)
 
     spots_taken = current_count + 1
@@ -425,4 +455,40 @@ def get_rsvp_count(
         "going_count": going_count,
         "capacity": event.capacity,
         "spots_left": None if event.capacity is None else max(event.capacity - going_count, 0),
+    }
+
+
+@router.get("/{event_id}/guests")
+def get_event_guests(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    ensure_owner(event, current_user)
+
+    rsvps = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going",
+    ).order_by(RSVP.created_at.asc()).all()
+
+    guests = []
+    for rsvp in rsvps:
+        user = db.query(User).filter(User.id == rsvp.user_id).first()
+        if user:
+            guests.append({
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "rsvp_date": rsvp.created_at,
+            })
+
+    return {
+        "event_id": event_id,
+        "event_title": event.title,
+        "total_guests": len(guests),
+        "guests": guests,
     }

@@ -57,13 +57,20 @@ export default function Events() {
       if (res.ok) {
         setEvents(prev => prev.map(e => {
           if (e.id !== eventId) return e
-          const newGoingCount = alreadyRsvped ? e.going_count - 1 : e.going_count + 1
-          const newSpotsLeft = e.capacity != null ? e.capacity - newGoingCount : null
+          const fallbackCount = alreadyRsvped
+            ? Math.max((Number(e.going_count) || 0) - 1, 0)
+            : (Number(e.going_count) || 0) + 1
+          const newGoingCount = Number.isFinite(Number(data.spots_taken))
+            ? Number(data.spots_taken)
+            : fallbackCount
+          const newCapacity = data.capacity ?? e.capacity
+          const newSpotsLeft = data.spots_left ?? (newCapacity != null ? Math.max(newCapacity - newGoingCount, 0) : null)
           return {
             ...e,
             going_count: newGoingCount,
+            capacity: newCapacity,
             spots_left: newSpotsLeft,
-            is_full: e.capacity != null ? newGoingCount >= e.capacity : false,
+            is_full: newCapacity != null ? newGoingCount >= newCapacity : false,
             user_has_rsvped: !alreadyRsvped,
           }
         }))

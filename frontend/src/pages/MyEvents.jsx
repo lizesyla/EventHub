@@ -28,14 +28,6 @@ function statusStyle(status) {
   return { bg: "rgba(148,163,184,0.15)", color: colors.textMuted }
 }
 
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem("user"))
-  } catch {
-    return null
-  }
-}
-
 function EventBanner({ event }) {
   const [hasError, setHasError] = useState(false)
 
@@ -60,25 +52,23 @@ function EventBanner({ event }) {
   )
 }
 
-export default function Organizer() {
+export default function MyEvents() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
   const token = localStorage.getItem("token")
-  const user = getStoredUser()
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events", {
+    fetch("http://localhost:8000/api/events/mine", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
       .then(data => {
-        const allEvents = Array.isArray(data) ? data : []
-        setEvents(user?.id ? allEvents.filter(event => event.organizer_id === user.id) : allEvents)
+        setEvents(Array.isArray(data) ? data : [])
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [token, user?.id])
+  }, [token])
 
   async function handleCancel(eventId) {
     if (!window.confirm("Are you sure you want to cancel this event? RSVPs will be released.")) return
@@ -135,9 +125,9 @@ export default function Organizer() {
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "40px", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 10px" }}>ORGANIZER</p>
+            <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 10px" }}>MY EVENTS</p>
             <h2 style={{ fontSize: "32px", fontWeight: "800", color: colors.textMain, margin: "0 0 8px" }}>My Events</h2>
-            <p style={{ color: colors.textMuted, fontSize: "15px", margin: 0 }}>Manage event details, capacity, and reservations</p>
+            <p style={{ color: colors.textMuted, fontSize: "15px", margin: 0 }}>Manage the events you submitted, capacity, and reservations</p>
           </div>
           <Link to="/create-event" style={{ padding: "13px 24px", backgroundColor: colors.accent, color: "#fff", borderRadius: "10px", textDecoration: "none", fontSize: "14px", fontWeight: "700", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
             + Create Event
