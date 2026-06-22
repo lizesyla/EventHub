@@ -89,7 +89,7 @@ async def create_event(
     description: str = Form(None),
     location: str = Form(...),
     date_time: str = Form(...),
-    capacity: int = Form(None),
+    capacity: int = Form(...),
     banner: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -101,7 +101,7 @@ async def create_event(
         raise HTTPException(status_code=400, detail="Title must be at least 3 characters.")
     if not clean_location:
         raise HTTPException(status_code=400, detail="Location cannot be empty.")
-    if capacity is not None and capacity < 1:
+    if capacity < 1:
         raise HTTPException(status_code=400, detail="Capacity must be at least 1.")
 
     try:
@@ -252,6 +252,8 @@ def approve_event(
     event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    if event.capacity is None or event.capacity < 1:
+        raise HTTPException(status_code=400, detail="Event must have a capacity of at least 1 before approval.")
 
     event.status = "upcoming"
     event.pending_reason = None
@@ -346,7 +348,7 @@ def update_event(
         if capacity < going_count:
             raise HTTPException(
                 status_code=400,
-                detail="Capacity cannot be lower than the current RSVP count.",
+                detail="Capacity cannot be lower than the current reservation count.",
             )
         if capacity != event.capacity:
             requires_reapproval = True
@@ -413,7 +415,7 @@ def cancel_event(
     for rsvp in rsvps:
         db.add(Notification(
             user_id=rsvp.user_id,
-            message=f"The event '{event.title}' you RSVP'd to has been cancelled.",
+            message=f"The event '{event.title}' you reserved has been cancelled.",
             type="cancellation",
         ))
 
@@ -423,7 +425,7 @@ def cancel_event(
     db.commit()
     db.refresh(event)
 
-    return {"message": "Event cancelled and RSVPs freed.", "event": serialize_event(event, db, current_user)}
+    return {"message": "Event cancelled and reservations freed.", "event": serialize_event(event, db, current_user)}
 
 
 @router.delete("/{event_id}")

@@ -51,7 +51,9 @@ function CreateEvent() {
     if (!location.trim()) {
       localErrors.location = "Location is required."
     }
-    if (capacity && (!Number.isInteger(capacityNumber) || capacityNumber < 1)) {
+    if (!capacity) {
+      localErrors.capacity = "Capacity is required."
+    } else if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
       localErrors.capacity = "Capacity must be a whole number of at least 1."
     }
     if (banner && !banner.type.startsWith("image/")) {
@@ -80,7 +82,7 @@ function CreateEvent() {
     formData.append("description", description)
     formData.append("date_time", date)
     formData.append("location", location.trim())
-    if (capacity) formData.append("capacity", capacity)
+    formData.append("capacity", capacity)
     if (banner) formData.append("banner", banner)
 
     try {
@@ -137,7 +139,7 @@ function CreateEvent() {
         <div style={{ marginBottom: "32px" }}>
           <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENT SUBMISSION</p>
           <h2 style={{ fontSize: "28px", fontWeight: "800", color: colors.textMain, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Create New Event</h2>
-          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Submitted events stay pending until an admin approves them.</p>
+          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Submitted events stay pending until an admin approves them. Capacity is required.</p>
         </div>
 
         {success && (
@@ -171,9 +173,15 @@ function CreateEvent() {
           </div>
 
           <div style={{ marginBottom: "20px" }}>
-            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Capacity <span style={{ color: colors.textMuted, fontWeight: "400" }}>(optional)</span></label>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Capacity *</label>
             <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. 50" style={inputStyle} min="1" step="1" />
             {errors.capacity && <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.capacity}</span>}
+            {!errors.capacity && capacity && Number(capacity) >= 1 && (
+              <div style={{ marginTop: "10px", padding: "12px", borderRadius: "10px", border: `1px solid ${colors.border}`, backgroundColor: colors.inputBg }}>
+                <p style={{ color: colors.textMain, fontSize: "14px", fontWeight: "800", margin: "0 0 4px" }}>0/{capacity} Reservations</p>
+                <p style={{ color: colors.textMuted, fontSize: "12px", margin: 0 }}>{capacity} spot{Number(capacity) === 1 ? "" : "s"} available</p>
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: "32px" }}>
@@ -198,7 +206,7 @@ function CreateEvent() {
             cursor: loading ? "not-allowed" : "pointer",
             boxShadow: "0 4px 20px rgba(99,102,241,0.4)",
           }}>
-            {loading ? "Publishing..." : "Publish Event"}
+            {loading ? "Submitting..." : "Submit Event"}
           </button>
         </form>
       </div>

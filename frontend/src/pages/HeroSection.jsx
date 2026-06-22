@@ -4,7 +4,6 @@ import { Link } from "react-router-dom"
 export default function HeroSection() {
   const canvasRef = useRef(null)
   const [showContent, setShowContent] = useState(false)
-  const [titleDone, setTitleDone] = useState(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -149,7 +148,6 @@ export default function HeroSection() {
 
         if (t >= 1) {
           cancelAnimationFrame(animationId)
-          setTitleDone(true)
           setShowContent(true)
           return
         }
@@ -253,7 +251,7 @@ export default function HeroSection() {
           </h2>
 
           <p className="content-fade-3" style={{ fontSize: '17px', color: '#64748b', maxWidth: '520px', margin: '0 auto 44px', lineHeight: '1.75' }}>
-            Your company's private events board. Discover lunch-and-learns, game nights, tech talks and socials — then RSVP in seconds.
+            Your company's private events board. Discover lunch-and-learns, game nights, tech talks and socials — then reserve in seconds.
           </p>
 
           {/* Buttons */}
@@ -278,7 +276,7 @@ export default function HeroSection() {
           <div className="content-fade-4" style={{ display: 'flex', gap: '40px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
               { icon: '📅', value: 'Live', label: 'Event Board' },
-              { icon: '⚡', value: '1-click', label: 'RSVP' },
+              { icon: '⚡', value: '1-click', label: 'Reservation' },
               { icon: '🔒', value: '0%', label: 'Overbooking' },
             ].map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

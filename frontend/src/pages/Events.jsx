@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
+import ConfirmModal from "../components/ConfirmModal"
 
 const colors = {
   bgDark: "#0f172a",
@@ -28,26 +29,23 @@ export default function Events() {
   const [loading, setLoading] = useState(true)
   const [rsvpMsg, setRsvpMsg] = useState({ id: null, msg: "", type: "" })
   const [rsvpLoading, setRsvpLoading] = useState(null)
+  const [cancelRsvpEvent, setCancelRsvpEvent] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState(null)
   const token = localStorage.getItem("token")
   const role = parseRole()
 
   useEffect(() => {
-    fetchEvents()
-  }, [token])
-
-  function fetchEvents() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    setLoading(true)
     fetch("http://localhost:8000/api/events", { headers })
       .then(response => response.json())
       .then(data => setEvents(Array.isArray(data) ? data : []))
       .catch(() => setEvents([]))
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
   async function handleRSVP(eventId, alreadyRsvped) {
     if (!token) {
-      setRsvpMsg({ id: eventId, msg: "Please sign in to RSVP for this event.", type: "warn" })
+      setRsvpMsg({ id: eventId, msg: "Please sign in to make a reservation for this event.", type: "warn" })
       setTimeout(() => setRsvpMsg({ id: null, msg: "", type: "" }), 3000)
       return
     }
@@ -61,9 +59,7 @@ export default function Events() {
       const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
-        setEvents(prev => prev.map(event => {
-          if (event.id !== eventId) return event
-
+        const applyReservationUpdate = event => {
           const fallbackCount = alreadyRsvped
             ? Math.max((Number(event.going_count) || 0) - 1, 0)
             : (Number(event.going_count) || 0) + 1
@@ -83,8 +79,14 @@ export default function Events() {
             is_full: newCapacity != null ? newGoingCount >= newCapacity : false,
             user_has_rsvped: !alreadyRsvped,
           }
+        }
+
+        setEvents(prev => prev.map(event => {
+          if (event.id !== eventId) return event
+          return applyReservationUpdate(event)
         }))
-        setRsvpMsg({ id: eventId, msg: alreadyRsvped ? "RSVP cancelled." : "RSVP confirmed.", type: "success" })
+        setSelectedEvent(prev => prev && prev.id === eventId ? applyReservationUpdate(prev) : prev)
+        setRsvpMsg({ id: eventId, msg: alreadyRsvped ? "Reservation cancelled." : "Reservation confirmed.", type: "success" })
       } else {
         setRsvpMsg({ id: eventId, msg: data.detail || "Something went wrong.", type: "warn" })
       }
@@ -94,6 +96,43 @@ export default function Events() {
       setRsvpLoading(null)
       setTimeout(() => setRsvpMsg({ id: null, msg: "", type: "" }), 2500)
     }
+  }
+
+  function requestRSVP(event) {
+    if (event.user_has_rsvped) {
+      setCancelRsvpEvent(event)
+      return
+    }
+
+    handleRSVP(event.id, false)
+  }
+
+  function confirmCancelRSVP() {
+    const event = cancelRsvpEvent
+    if (!event) return
+
+    setCancelRsvpEvent(null)
+    handleRSVP(event.id, true)
+  }
+
+  function reservationRatio(event) {
+    const going = Number(event.going_count) || 0
+    const capacity = Number(event.capacity) || 0
+    return `${going}/${capacity}`
+  }
+
+  function availableSpots(event) {
+    const capacity = Number(event.capacity) || 0
+    const going = Number(event.going_count) || 0
+    return Math.max(capacity - going, 0)
+  }
+
+  function reserveButtonLabel(event, fullyBooked) {
+    if (rsvpLoading === event.id) return "Processing..."
+    if (event.status === "cancelled") return "Event Cancelled"
+    if (event.user_has_rsvped) return "Cancel Reservation"
+    if (fullyBooked) return "Fully Booked"
+    return token ? "Reserve Spot" : "Sign in to Reserve"
   }
 
   return (
@@ -156,12 +195,36 @@ export default function Events() {
                     <p style={{ color: colors.textMuted, fontSize: "13px", margin: "0 0 6px" }}>
                       {event.date_time ? new Date(event.date_time).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : ""}
                     </p>
+                    <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "8px",
+                    margin: "16px 0",
+                    borderTop: `1px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    padding: "12px 0"
+                  }}>
+                    <div>
+                      <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reservations</p>
+                      <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{reservationRatio(event)}</p>
+                    </div>
 
-                    {event.capacity != null && (
-                      <p style={{ color: event.is_full ? colors.error : colors.textMuted, fontSize: "13px", margin: "0 0 6px", fontWeight: event.is_full ? "700" : "400" }}>
-                        {event.is_full ? "Fully booked" : `${event.spots_left} spot${event.spots_left === 1 ? "" : "s"} left of ${event.capacity}`}
+                    <div>
+                      <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reserved</p>
+                      <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.going_count || 0}</p>
+                    </div>
+
+                    <div>
+                      <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Available</p>
+                      <p style={{ color: event.is_full ? colors.error : colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>
+                        {event.spots_left ?? availableSpots(event)}
                       </p>
-                    )}
+                    </div>
+                    </div>
+
+                    <p style={{ color: event.is_full ? colors.error : colors.textMuted, fontSize: "13px", margin: "0 0 6px", fontWeight: event.is_full ? "700" : "400" }}>
+                      {`${reservationRatio(event)} Reservations${event.is_full ? " - Fully booked" : ""}`}
+                    </p>
 
                     {event.description && (
                       <p style={{ color: colors.textMuted, fontSize: "14px", margin: "12px 0 0", lineHeight: "1.6", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -175,13 +238,32 @@ export default function Events() {
                       </div>
                     )}
 
-                    {role !== "admin" && (
+                    <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                       <button
-                        onClick={() => handleRSVP(event.id, event.user_has_rsvped)}
+                        type="button"
+                        onClick={() => setSelectedEvent(event)}
+                        style={{
+                          flex: role === "admin" ? "1 1 100%" : "1",
+                          padding: "12px",
+                          backgroundColor: "transparent",
+                          color: colors.accent,
+                          border: `1px solid ${colors.accent}`,
+                          borderRadius: "10px",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View Details
+                      </button>
+
+                      {role !== "admin" && (
+                      <button
+                        onClick={() => requestRSVP(event)}
                         disabled={disabled}
                         style={{
                           width: "100%",
-                          marginTop: "20px",
+                          flex: "1",
                           padding: "12px",
                           backgroundColor: disabled
                             ? "rgba(148,163,184,0.1)"
@@ -206,17 +288,10 @@ export default function Events() {
                           transition: "all 0.2s ease",
                         }}
                       >
-                        {rsvpLoading === event.id
-                          ? "Processing..."
-                          : event.status === "cancelled"
-                            ? "Event Cancelled"
-                            : event.user_has_rsvped
-                              ? "Cancel RSVP"
-                              : fullyBooked
-                                ? "Fully Booked"
-                                : token ? "RSVP Now" : "Sign in to RSVP"}
+                        {reserveButtonLabel(event, fullyBooked)}
                       </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -224,6 +299,81 @@ export default function Events() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={Boolean(cancelRsvpEvent)}
+        title="Cancel Reservation?"
+        message={`Are you sure you want to cancel your reservation for "${cancelRsvpEvent?.title}"? Your reservation will be released.`}
+        confirmLabel="Cancel Reservation"
+        tone="danger"
+        loading={rsvpLoading === cancelRsvpEvent?.id}
+        onCancel={() => setCancelRsvpEvent(null)}
+        onConfirm={confirmCancelRSVP}
+      />
+
+      {selectedEvent && (
+        <div
+          onClick={() => setSelectedEvent(null)}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200, padding: "20px" }}
+        >
+          <div
+            onClick={event => event.stopPropagation()}
+            style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: "16px", width: "100%", maxWidth: "560px", overflow: "hidden" }}
+          >
+            {selectedEvent.banner_url && (
+              <img src={selectedEvent.banner_url} alt="Event banner" style={{ width: "100%", height: "190px", objectFit: "cover" }} />
+            )}
+            <div style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", marginBottom: "14px" }}>
+                <div>
+                  <p style={{ color: colors.accent, fontSize: "11px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", margin: "0 0 6px" }}>EVENT DETAILS</p>
+                  <h2 style={{ color: colors.textMain, fontSize: "24px", margin: 0 }}>{selectedEvent.title}</h2>
+                </div>
+                <button onClick={() => setSelectedEvent(null)} style={{ background: "transparent", border: "none", color: colors.textMuted, fontSize: "20px", cursor: "pointer" }}>x</button>
+              </div>
+
+              <p style={{ color: colors.textMuted, lineHeight: 1.6, margin: "0 0 18px" }}>
+                {selectedEvent.description || "No description provided."}
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                {[
+                  ["Date", selectedEvent.date_time ? new Date(selectedEvent.date_time).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "No date"],
+                  ["Location", selectedEvent.location || "No location"],
+
+                  ["Reservations", reservationRatio(selectedEvent)],
+                  ["Spots left", selectedEvent.spots_left ?? availableSpots(selectedEvent)],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ backgroundColor: colors.bgDark, border: `1px solid ${colors.border}`, borderRadius: "10px", padding: "12px" }}>
+                    <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 5px", textTransform: "uppercase", letterSpacing: "1px" }}>{label}</p>
+                    <p style={{ color: colors.textMain, fontSize: "14px", fontWeight: "700", margin: 0 }}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {role !== "admin" && (
+                <button
+                  onClick={() => requestRSVP(selectedEvent)}
+                  disabled={selectedEvent.status === "cancelled" || rsvpLoading === selectedEvent.id || (selectedEvent.capacity != null && selectedEvent.is_full && !selectedEvent.user_has_rsvped)}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    backgroundColor: selectedEvent.user_has_rsvped ? "transparent" : colors.accent,
+                    color: selectedEvent.user_has_rsvped ? colors.error : "#fff",
+                    border: selectedEvent.user_has_rsvped ? `1px solid ${colors.error}` : "none",
+                    borderRadius: "10px",
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                  }}
+                >
+                  {reserveButtonLabel(selectedEvent, selectedEvent.capacity != null && selectedEvent.is_full && !selectedEvent.user_has_rsvped)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import NotificationBell from './NotificationBell'
+import ConfirmModal from "../components/ConfirmModal"
 
 const darkColors = {
   bgDark: '#15101f', cardBg: '#221c30', inputBg: '#15101f',
@@ -59,6 +60,7 @@ export default function Admin() {
   const [message, setMessage] = useState("")
   const [stats, setStats] = useState({ turnout: [], popular_events: [] })
   const [trends, setTrends] = useState([])
+  const [confirmAction, setConfirmAction] = useState(null)
   const token = localStorage.getItem("token")
   const headers = { "Authorization": `Bearer ${token}` }
 
@@ -89,6 +91,81 @@ export default function Admin() {
       .catch(() => {})
   }, [])
 
+  function getConfirmDetails() {
+    const event = confirmAction?.event
+    const user = confirmAction?.user
+
+    if (confirmAction?.type === 'approve-event') {
+      return {
+        title: 'Approve event?',
+        message: `Are you sure you want to approve "${event?.title}"? This event will become visible to attendees.`,
+        confirmLabel: 'Approve',
+        tone: 'success',
+      }
+    }
+    if (confirmAction?.type === 'reject-event') {
+      return {
+        title: 'Reject event?',
+        message: `Are you sure you want to reject "${event?.title}"? The organizer will be notified.`,
+        confirmLabel: 'Reject',
+        tone: 'danger',
+      }
+    }
+    if (confirmAction?.type === 'cancel-event') {
+      return {
+        title: 'Cancel event?',
+        message: `Are you sure you want to cancel "${event?.title}"? Active reservations will be released and attendees will be notified.`,
+        confirmLabel: 'Cancel Event',
+        tone: 'warning',
+      }
+    }
+    if (confirmAction?.type === 'delete-event') {
+      return {
+        title: 'Delete event?',
+        message: `Are you sure you want to permanently delete "${event?.title}"? This cannot be undone.`,
+        confirmLabel: 'Delete',
+        tone: 'danger',
+      }
+    }
+    if (confirmAction?.type === 'activate-user') {
+      return {
+        title: 'Activate user?',
+        message: `Are you sure you want to activate ${user?.name}? They will be able to access EventHub.`,
+        confirmLabel: 'Activate',
+        tone: 'success',
+      }
+    }
+    if (confirmAction?.type === 'deactivate-user') {
+      return {
+        title: 'Deactivate user?',
+        message: `Are you sure you want to deactivate ${user?.name}? They will lose access until activated again.`,
+        confirmLabel: 'Deactivate',
+        tone: 'danger',
+      }
+    }
+
+    return {
+      title: 'Are you sure?',
+      message: 'Please confirm this action.',
+      confirmLabel: 'Confirm',
+      tone: 'danger',
+    }
+  }
+
+  async function runConfirmedAction() {
+    const action = confirmAction
+    if (!action) return
+
+    setConfirmAction(null)
+
+    if (action.type === 'approve-event') await approveEvent(action.event.id)
+    if (action.type === 'reject-event') await rejectEvent(action.event.id)
+    if (action.type === 'cancel-event') await cancelEvent(action.event.id)
+    if (action.type === 'delete-event') await deleteEvent(action.event.id, action.fromHistory)
+    if (action.type === 'activate-user') await handleApprove(action.user.id)
+    if (action.type === 'deactivate-user') await handleDeactivate(action.user.id)
+  }
+
   async function approveEvent(eventId) {
     const res = await fetch(`http://localhost:8000/api/events/${eventId}/approve`, {
       method: 'PATCH', headers
@@ -101,7 +178,6 @@ export default function Admin() {
   }
 
   async function rejectEvent(eventId) {
-    if (!window.confirm("Reject this event?")) return
     const res = await fetch(`http://localhost:8000/api/events/${eventId}/reject`, {
       method: 'PATCH', headers
     })
@@ -115,7 +191,6 @@ export default function Admin() {
   }
 
   async function cancelEvent(eventId) {
-    if (!window.confirm("Cancel this event? RSVPs will be released.")) return
     const res = await fetch(`http://localhost:8000/api/events/${eventId}/cancel`, {
       method: 'PATCH', headers
     })
@@ -129,7 +204,6 @@ export default function Admin() {
   }
 
   async function deleteEvent(eventId, fromHistory) {
-    if (!window.confirm("Delete this event permanently?")) return
     const res = await fetch(`http://localhost:8000/api/events/${eventId}`, {
       method: 'DELETE', headers
     })
@@ -168,7 +242,7 @@ function exportPDF() {
 
   autoTable(doc, {
     startY: 42,
-    head: [["Event", "RSVPs", "Capacity"]],
+    head: [["Event", "Reservations", "Capacity"]],
     body: stats.turnout.map(e => [e.title, e.going, e.capacity || "—"]),
     theme: "striped",
     headStyles: { fillColor: [236, 72, 153] }
@@ -180,7 +254,7 @@ function exportPDF() {
 
   autoTable(doc, {
     startY: afterTurnoutY + 4,
-    head: [["Rank", "Event", "RSVPs", "Capacity"]],
+    head: [["Rank", "Event", "Reservations", "Capacity"]],
     body: stats.popular_events.map((e, i) => [i + 1, e.title, e.going, e.capacity || "—"]),
     theme: "striped",
     headStyles: { fillColor: [168, 85, 247] }
@@ -188,11 +262,11 @@ function exportPDF() {
 
   const afterPopularY = doc.lastAutoTable.finalY + 12
   doc.setFontSize(13)
-  doc.text("RSVP Trends Over Time", 14, afterPopularY)
+  doc.text("Reservation Trends Over Time", 14, afterPopularY)
 
   autoTable(doc, {
     startY: afterPopularY + 4,
-    head: [["Date", "RSVPs"]],
+    head: [["Date", "Reservations"]],
     body: trends.map(t => [t.date, t.count]),
     theme: "striped",
     headStyles: { fillColor: [236, 72, 153] }
@@ -202,7 +276,6 @@ function exportPDF() {
 }
 
   async function handleDeactivate(userId) {
-    if (!window.confirm("Are you sure you want to deactivate this user?")) return
     const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/deactivate`, {
       method: 'PATCH', headers
     })
@@ -230,6 +303,7 @@ function exportPDF() {
   const totalGoing = stats.turnout.reduce((sum, e) => sum + e.going, 0)
 const totalCapacity = stats.turnout.reduce((sum, e) => sum + e.capacity, 0)
 const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= e.capacity).length
+const pendingReviewCount = events.filter(e => e.status === 'pending').length
 
   const pageInfo = {
     dashboard: { title: 'Dashboard', subtitle: 'Overview of platform activity' },
@@ -237,6 +311,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
     users: { title: 'Users', subtitle: 'Manage all user accounts' },
     history: { title: 'History', subtitle: 'Past and cancelled events' },
   }
+  const confirmDetails = getConfirmDetails()
 
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: '100vh', fontFamily: "'Inter', sans-serif", display: 'flex' }}>
@@ -382,6 +457,42 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
   </div>
 
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    {pendingReviewCount > 0 && (
+      <button
+        onClick={() => setActivePage('events')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 14px',
+          backgroundColor: '#f59e0b22',
+          color: '#f59e0b',
+          border: '1px solid #f59e0b55',
+          borderRadius: '10px',
+          fontSize: '13px',
+          fontWeight: '800',
+          cursor: 'pointer',
+        }}
+      >
+        <Clock size={15} />
+        Review Requests
+        <span style={{
+          minWidth: '20px',
+          height: '20px',
+          borderRadius: '999px',
+          backgroundColor: '#f59e0b',
+          color: '#1a162e',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '11px',
+          fontWeight: '900',
+          padding: '0 6px',
+        }}>
+          {pendingReviewCount}
+        </span>
+      </button>
+    )}
     <NotificationBell iconColor={colors.textMain} />
     {activePage === 'dashboard' && (
       <button
@@ -521,7 +632,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
             contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
             labelStyle={{ color: colors.textMain }}
           />
-          <Bar dataKey="going" fill={colors.accent} name="RSVPs" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="going" fill={colors.accent} name="Reservations" radius={[6, 6, 0, 0]} />
           <Bar dataKey="capacity" fill={colors.accentSecondary} name="Capacity" radius={[6, 6, 0, 0]} opacity={0.4} />
         </BarChart>
       </ResponsiveContainer>
@@ -536,7 +647,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
     Top 5 Most Popular Events
   </h3>
   {stats.popular_events.length === 0 ? (
-    <p style={{ color: colors.textMuted, textAlign: 'center', padding: '20px' }}>No RSVP data yet.</p>
+    <p style={{ color: colors.textMuted, textAlign: 'center', padding: '20px' }}>No reservation data yet.</p>
   ) : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {stats.popular_events.map((event, i) => (
@@ -570,10 +681,10 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
 </div>
 <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '24px', marginTop: '24px' }}>
   <h3 style={{ color: colors.textMain, fontSize: '16px', fontWeight: '700', margin: '0 0 20px' }}>
-    RSVP Trends Over Time
+    Reservation Trends Over Time
   </h3>
   {trends.length === 0 ? (
-    <p style={{ color: colors.textMuted, textAlign: 'center', padding: '40px' }}>No RSVP activity yet.</p>
+    <p style={{ color: colors.textMuted, textAlign: 'center', padding: '40px' }}>No reservation activity yet.</p>
   ) : (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={trends}>
@@ -584,7 +695,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
           contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
           labelStyle={{ color: colors.textMain }}
         />
-        <Line type="monotone" dataKey="count" stroke={colors.accent} strokeWidth={3} dot={{ fill: colors.accent, r: 4 }} name="RSVPs" />
+        <Line type="monotone" dataKey="count" stroke={colors.accent} strokeWidth={3} dot={{ fill: colors.accent, r: 4 }} name="Reservations" />
       </LineChart>
     </ResponsiveContainer>
   )}
@@ -637,19 +748,22 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
                             <div style={{ display: 'flex', gap: '8px' }}>
                               {event.status === 'pending' ? (
                                 <>
-                                  <button onClick={() => approveEvent(event.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  <button onClick={() => setConfirmAction({ type: 'approve-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                     <CheckCircle2 size={14} /> Approve
                                   </button>
-                                  <button onClick={() => rejectEvent(event.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  <button onClick={() => setConfirmAction({ type: 'reject-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                     <XCircle size={14} /> Reject
+                                  </button>
+                                  <button onClick={() => setConfirmAction({ type: 'delete-event', event, fromHistory: false })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                    <Trash2 size={14} /> Delete
                                   </button>
                                 </>
                               ) : (
                                 <>
-                                  <button onClick={() => cancelEvent(event.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  <button onClick={() => setConfirmAction({ type: 'cancel-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                     <Ban size={14} /> Cancel
                                   </button>
-                                  <button onClick={() => deleteEvent(event.id, false)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  <button onClick={() => setConfirmAction({ type: 'delete-event', event, fromHistory: false })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                     <Trash2 size={14} /> Delete
                                   </button>
                                 </>
@@ -700,7 +814,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
                             </span>
                           </td>
                           <td style={{ padding: '16px' }}>
-                            <button onClick={() => deleteEvent(event.id, true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                            <button onClick={() => setConfirmAction({ type: 'delete-event', event, fromHistory: true })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                               <Trash2 size={14} /> Delete
                             </button>
                           </td>
@@ -762,12 +876,12 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               {!user.is_approved && user.role !== 'admin' && (
-                                <button onClick={() => handleApprove(user.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                <button onClick={() => setConfirmAction({ type: 'activate-user', user })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                   <UserCheck size={14} /> Activate
                                 </button>
                               )}
                               {user.is_approved && user.role !== 'admin' && (
-                                <button onClick={() => handleDeactivate(user.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                <button onClick={() => setConfirmAction({ type: 'deactivate-user', user })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                   <UserX size={14} /> Deactivate
                                 </button>
                               )}
@@ -784,6 +898,15 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
 
         </div>
       </div>
+      <ConfirmModal
+        open={Boolean(confirmAction)}
+        title={confirmDetails.title}
+        message={confirmDetails.message}
+        confirmLabel={confirmDetails.confirmLabel}
+        tone={confirmDetails.tone}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={runConfirmedAction}
+      />
     </div>
   )
 }

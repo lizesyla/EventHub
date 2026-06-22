@@ -103,12 +103,12 @@ export default function Home() {
               The perfect events board for your team
             </h2>
             <p style={{ color: '#475569', fontSize: '17px', lineHeight: '1.75', margin: '0 0 32px' }}>
-              EventHub turns "we should do something" into a real event people can actually find and sign up for. One place to post, discover, RSVP and track — no more scattered emails or Slack messages.
+              EventHub turns "we should do something" into a real event people can actually find and sign up for. One place to post, discover, reserve and track — no more scattered emails or Slack messages.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '36px' }}>
               {[
                 { icon: '✅', text: 'Organizers create events with banners, capacity and location' },
-                { icon: '🎯', text: 'Attendees browse and RSVP with one click — cancel anytime' },
+                { icon: '🎯', text: 'Attendees browse and reserve with one click — cancel anytime' },
                 { icon: '📊', text: 'Track attendance, guest lists and trends with live dashboard' },
                 { icon: '🔒', text: 'Role-based access — Attendee, Organizer and Admin' },
               ].map((item, i) => (
@@ -127,9 +127,9 @@ export default function Home() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {[
-              { value: '1-click', label: 'RSVP Process', desc: 'Sign up for any event instantly', icon: '⚡', color: '#6366f1' },
+              { value: '1-click', label: 'Reservation Process', desc: 'Sign up for any event instantly', icon: '⚡', color: '#6366f1' },
               { value: '100%', label: 'Overbooking Free', desc: 'Atomic capacity enforcement', icon: '🔒', color: '#06b6d4' },
-              { value: 'Live', label: 'Guest Lists', desc: 'Real-time RSVP updates', icon: '📋', color: '#10b981' },
+              { value: 'Live', label: 'Guest Lists', desc: 'Real-time reservation updates', icon: '📋', color: '#10b981' },
               { value: '∞', label: 'Events', desc: 'No limit on events created', icon: '📅', color: '#8b5cf6' },
             ].map((s, i) => (
               <div key={i} className="step-card" style={{ backgroundColor: '#f8fafc', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0' }}>
@@ -286,7 +286,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
             {[
               { step: '01', icon: '🔍', title: 'Discover Events', desc: 'Browse upcoming events on a beautiful board. Find what excites you.', color: '#6366f1' },
-              { step: '02', icon: '✅', title: 'RSVP Instantly', desc: 'Sign up with one click. Cancel anytime. First come, first served.', color: '#8b5cf6' },
+              { step: '02', icon: '✅', title: 'Reserve Instantly', desc: 'Sign up with one click. Cancel anytime. First come, first served.', color: '#8b5cf6' },
               { step: '03', icon: '📊', title: 'Track Attendance', desc: 'Organizers see who is coming. Dashboard shows live turnout and trends.', color: '#06b6d4' },
             ].map((item, i) => (
               <div key={i} className="step-card" style={{ backgroundColor: '#ffffff', padding: '40px 32px', borderRadius: '24px', border: '1px solid #e2e8f0', position: 'relative', overflow: 'hidden' }}>
@@ -300,7 +300,7 @@ export default function Home() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '40px' }}>
-            {['Discover', '→', 'RSVP', '→', 'Track'].map((item, i) => (
+            {['Discover', '→', 'Reserve', '→', 'Track'].map((item, i) => (
               <span key={i} style={{ color: i % 2 === 0 ? '#6366f1' : '#94a3b8', fontSize: '14px', fontWeight: i % 2 === 0 ? '700' : '400' }}>{item}</span>
             ))}
           </div>

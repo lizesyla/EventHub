@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
+import ConfirmModal from "../components/ConfirmModal"
 
 const colors = {
   bgDark: "#0f172a",
@@ -36,6 +37,18 @@ function eventStatusColor(status) {
   return { bg: "rgba(16,185,129,0.15)", color: colors.green }
 }
 
+function reservationRatio(event) {
+  const reserved = Number(event.going_count ?? event.going) || 0
+  const capacity = Number(event.capacity) || 0
+  return `${reserved}/${capacity}`
+}
+
+function availableSpots(event) {
+  const capacity = Number(event.capacity) || 0
+  const reserved = Number(event.going_count ?? event.going) || 0
+  return Math.max(capacity - reserved, 0)
+}
+
 function EventBanner({ event }) {
   const [hasError, setHasError] = useState(false)
 
@@ -70,6 +83,7 @@ export default function MyEvents() {
   const [guests, setGuests] = useState([])
   const [loadingGuests, setLoadingGuests] = useState(false)
   const [myStats, setMyStats] = useState(null)
+  const [cancelEventTarget, setCancelEventTarget] = useState(null)
   const token = localStorage.getItem("token")
 
   useEffect(() => {
@@ -98,7 +112,6 @@ export default function MyEvents() {
   }
 
   async function cancelEvent(eventId) {
-    if (!window.confirm("Cancel this event? RSVPs will be released.")) return
     setMessage("")
 
     try {
@@ -124,6 +137,14 @@ export default function MyEvents() {
     } finally {
       setTimeout(() => setMessage(""), 4000)
     }
+  }
+
+  function confirmCancelEvent() {
+    const event = cancelEventTarget
+    if (!event) return
+
+    setCancelEventTarget(null)
+    cancelEvent(event.id)
   }
 
   async function viewGuests(event) {
@@ -172,16 +193,18 @@ export default function MyEvents() {
       alert("Date and time are required.")
       return
     }
-    if (capacityValue !== "") {
-      const capacityNumber = Number(capacityValue)
-      if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
-        alert("Capacity must be a whole number of at least 1.")
-        return
-      }
-      if (capacityNumber < (Number(event.going_count) || 0)) {
-        alert("Capacity cannot be lower than the current RSVP count.")
-        return
-      }
+    if (capacityValue === "") {
+      alert("Capacity is required.")
+      return
+    }
+    const capacityNumber = Number(capacityValue)
+    if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
+      alert("Capacity must be a whole number of at least 1.")
+      return
+    }
+    if (capacityNumber < (Number(event.going_count) || 0)) {
+      alert("Capacity cannot be lower than the current reservation count.")
+      return
     }
 
     const formData = new FormData()
@@ -189,7 +212,7 @@ export default function MyEvents() {
     formData.append("description", editForm.description || "")
     formData.append("location", editForm.location.trim())
     formData.append("date_time", editForm.date_time)
-    if (capacityValue !== "") formData.append("capacity", capacityValue)
+    formData.append("capacity", capacityValue)
 
     try {
       const res = await fetch(`http://localhost:8000/api/events/${event.id}`, {
@@ -266,13 +289,13 @@ export default function MyEvents() {
                   <div key={`${event.title}-${index}`} style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
                     <span style={{ color: colors.textMain, fontSize: "13px", fontWeight: "600" }}>{event.title}</span>
                     <span style={{ color: colors.textMuted, fontSize: "13px" }}>
-                      {event.going}{event.capacity > 0 ? ` / ${event.capacity}` : ""} RSVPs
+                      {reservationRatio(event)} Reservations
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={{ color: colors.textMuted, margin: 0 }}>No RSVP data yet.</p>
+              <p style={{ color: colors.textMuted, margin: 0 }}>No reservation data yet.</p>
             )}
           </div>
         )}
@@ -324,16 +347,16 @@ export default function MyEvents() {
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "18px", borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}`, padding: "12px 0" }}>
                           <div>
-                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Capacity</p>
-                            <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.capacity ?? "Unlimited"}</p>
+                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reservations</p>
+                            <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{reservationRatio(event)}</p>
                           </div>
                           <div>
                             <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reserved</p>
                             <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.going_count || 0}</p>
                           </div>
                           <div>
-                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Free</p>
-                            <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.spots_left ?? "Open"}</p>
+                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Available</p>
+                            <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.spots_left ?? availableSpots(event)}</p>
                           </div>
                         </div>
 
@@ -343,7 +366,7 @@ export default function MyEvents() {
                               <button onClick={() => startEdit(event)} style={{ padding: "10px 14px", backgroundColor: "rgba(99,102,241,0.15)", color: colors.accent, border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
                                 Edit
                               </button>
-                              <button onClick={() => cancelEvent(event.id)} style={{ padding: "10px 14px", backgroundColor: "rgba(239,68,68,0.1)", color: colors.error, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
+                              <button onClick={() => setCancelEventTarget(event)} style={{ padding: "10px 14px", backgroundColor: "rgba(239,68,68,0.1)", color: colors.error, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
                                 Cancel
                               </button>
                             </>
@@ -367,8 +390,13 @@ export default function MyEvents() {
                         <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Date & Time</label>
                         <input type="datetime-local" value={editForm.date_time} onChange={e => setEditForm({ ...editForm, date_time: e.target.value })} style={inputStyle} />
 
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Capacity</label>
+                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Capacity *</label>
                         <input type="number" min="1" step="1" value={editForm.capacity} onChange={e => setEditForm({ ...editForm, capacity: e.target.value })} style={inputStyle} />
+                        {editForm.capacity !== "" && Number(editForm.capacity) >= 1 && (
+                          <p style={{ color: colors.textMuted, fontSize: "12px", margin: "8px 0 0" }}>
+                            {event.going_count || 0}/{editForm.capacity} Reservations
+                          </p>
+                        )}
 
                         <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
                           <button onClick={() => saveEdit(event)} style={{ flex: 1, padding: "10px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>
@@ -409,7 +437,7 @@ export default function MyEvents() {
               <p style={{ color: colors.textMuted }}>Loading guests...</p>
             ) : guests.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                <p style={{ color: colors.textMuted, fontSize: "14px" }}>No one has RSVP'd yet.</p>
+                <p style={{ color: colors.textMuted, fontSize: "14px" }}>No one has reserved yet.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -428,11 +456,21 @@ export default function MyEvents() {
             )}
 
             <p style={{ color: colors.textMuted, fontSize: "13px", textAlign: "center", marginTop: "20px", margin: "20px 0 0" }}>
-              {guests.length} {guests.length === 1 ? "person is" : "people are"} going
+              {guests.length} {guests.length === 1 ? "person has" : "people have"} reserved
             </p>
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={Boolean(cancelEventTarget)}
+        title="Cancel event?"
+        message={`Are you sure you want to cancel "${cancelEventTarget?.title}"? Active reservations will be released and attendees will be notified.`}
+        confirmLabel="Cancel Event"
+        tone="warning"
+        onCancel={() => setCancelEventTarget(null)}
+        onConfirm={confirmCancelEvent}
+      />
     </div>
   )
 }
