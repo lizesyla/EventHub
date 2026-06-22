@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
+import MyEvents from './pages/MyEvents'
 
 function parseRole() {
   try {
@@ -85,6 +86,7 @@ function App() {
               <>
                 <Link to="/events" style={linkStyle}>Events</Link>
                 <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+                <Link to="/my-events" style={linkStyle}>My Events</Link>
                 <Link to="/profile" style={linkStyle}>My Profile</Link>
               </>
             )}
@@ -125,6 +127,9 @@ function App() {
             } />
             <Route path="/create-event" element={
               <ProtectedRoute><CreateEvent /></ProtectedRoute>
+            } />
+            <Route path="/my-events" element={
+              <ProtectedRoute><MyEvents /></ProtectedRoute>
             } />
             <Route path="/admin" element={
               <ProtectedRoute><Admin defaultTab="events" /></ProtectedRoute>
