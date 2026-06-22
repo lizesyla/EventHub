@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef } from "react"
+import { apiUrl } from '../config/api';
 import HeroSection from './HeroSection'
 
 export default function Home() {
@@ -8,7 +9,7 @@ export default function Home() {
   const carouselRef = useRef(null)
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events")
+    fetch(apiUrl("/api/events"))
       .then(r => r.json())
       .then(data => { setEvents(data); setLoading(false) })
       .catch(() => setLoading(false))

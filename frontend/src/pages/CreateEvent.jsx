@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from "react"
+import { apiUrl } from '../config/api';
 
 function CreateEvent() {
   const [title, setTitle] = useState('')
@@ -71,7 +72,7 @@ function CreateEvent() {
     if (banner) formData.append('banner', banner)
 
     try {
-      const response = await fetch('http://localhost:8000/api/events', {
+      const response = await fetch(apiUrl('/api/events'), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { apiUrl } from '../config/api';
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
@@ -18,19 +19,19 @@ export default function Admin({ defaultTab = 'events' }) {
   useEffect(() => {
     const authHeaders = { Authorization: `Bearer ${token}` }
 
-    fetch("http://localhost:8000/api/events", { headers: authHeaders })
+    fetch(apiUrl("/api/events"), { headers: authHeaders })
       .then(r => r.json())
       .then(data => { setEvents(Array.isArray(data) ? data : []); setLoadingEvents(false) })
       .catch(() => setLoadingEvents(false))
 
-    fetch("http://localhost:8000/api/admin/users", { headers: authHeaders })
+    fetch(apiUrl("/api/admin/users"), { headers: authHeaders })
       .then(r => r.json())
       .then(data => { setUsers(Array.isArray(data) ? data : []); setLoadingUsers(false) })
       .catch(() => setLoadingUsers(false))
   }, [token])
 
   async function approveEvent(eventId) {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/approve`, {
+    const res = await fetch(apiUrl(`/api/events/${eventId}/approve`), {
       method: 'PATCH', headers,
     })
     if (res.ok) {
@@ -42,7 +43,7 @@ export default function Admin({ defaultTab = 'events' }) {
 
   async function rejectEvent(eventId) {
     if (!window.confirm("Reject this event?")) return
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/reject`, {
+    const res = await fetch(apiUrl(`/api/events/${eventId}/reject`), {
       method: 'PATCH', headers,
     })
     if (res.ok) {
@@ -54,7 +55,7 @@ export default function Admin({ defaultTab = 'events' }) {
 
   async function handleDeleteEvent(eventId) {
     if (!window.confirm("Delete this event permanently?")) return
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}`, {
+    const res = await fetch(apiUrl(`/api/events/${eventId}`), {
       method: 'DELETE', headers,
     })
     if (res.ok) {
@@ -66,7 +67,7 @@ export default function Admin({ defaultTab = 'events' }) {
 
   async function handleCancelEvent(eventId) {
     if (!window.confirm("Cancel this event?")) return
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/cancel`, {
+    const res = await fetch(apiUrl(`/api/events/${eventId}/cancel`), {
       method: 'PATCH', headers,
     })
     if (res.ok) {
@@ -77,7 +78,7 @@ export default function Admin({ defaultTab = 'events' }) {
   }
 
   async function handleActivateUser(userId) {
-    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/approve`, {
+    const res = await fetch(apiUrl(`/api/admin/users/${userId}/approve`), {
       method: 'PATCH', headers,
     })
     if (res.ok) {
@@ -87,7 +88,7 @@ export default function Admin({ defaultTab = 'events' }) {
 
   async function handleDeactivateUser(userId) {
     if (!window.confirm("Deactivate this user?")) return
-    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/deactivate`, {
+    const res = await fetch(apiUrl(`/api/admin/users/${userId}/deactivate`), {
       method: 'PATCH', headers,
     })
     if (res.ok) {

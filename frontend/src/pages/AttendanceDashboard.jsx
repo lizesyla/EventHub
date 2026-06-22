@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { apiUrl } from '../config/api';
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', textMain: '#ffffff',
@@ -14,7 +15,7 @@ export default function AttendanceDashboard() {
 
   useEffect(() => {
     // Tërheqja e të dhënave dinamike nga backend-i
-    fetch("http://localhost:8000/api/events", {
+    fetch(apiUrl("/api/events"), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())

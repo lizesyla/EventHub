@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect } from "react"
+import { apiUrl } from '../config/api';
 
 const colors = {
   bgDark: '#0f172a',
@@ -33,7 +34,7 @@ export default function Events() {
 
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    fetch("http://localhost:8000/api/events", { headers })
+    fetch(apiUrl("/api/events"), { headers })
       .then(r => r.json())
       .then(data => { setEvents(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
@@ -48,7 +49,7 @@ export default function Events() {
 
     setRsvpLoading(eventId)
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${eventId}/rsvp`, {
+      const res = await fetch(apiUrl(`/api/events/${eventId}/rsvp`), {
         method: alreadyRsvped ? 'DELETE' : 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
