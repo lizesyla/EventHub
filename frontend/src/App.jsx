@@ -91,15 +91,6 @@ function App() {
                 </>
               )}
 
-            {token && !isAdmin && (
-              <>
-                <Link to="/events" style={linkStyle}>Events</Link>
-                <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
-                <Link to="/my-events" style={linkStyle}>My Events</Link>
-                <Link to="/profile" style={linkStyle}>My Profile</Link>
-              </>
-            )}
-
               {token ? (
                 <button onClick={handleLogout} style={{ padding: "7px 16px", backgroundColor: "transparent", color: "#ef4444", border: "1px solid #ef4444", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}>
                   Sign Out

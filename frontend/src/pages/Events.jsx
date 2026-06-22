@@ -149,11 +149,87 @@ export default function Events() {
                       🗓️ {event.date_time ? new Date(event.date_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}
                     </p>
 
-                    {event.capacity != null && (
-                      <p style={{ color: event.is_full ? colors.error : colors.textMuted, fontSize: '13px', margin: '0 0 6px', fontWeight: event.is_full ? '700' : '400' }}>
-                        {event.is_full ? 'Fully booked' : `👥 ${event.spots_left} spot${event.spots_left === 1 ? '' : 's'} left of ${event.capacity}`}
-                      </p>
-                    )}
+                   <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "8px",
+    marginTop: "16px",
+    marginBottom: "18px",
+    borderTop: `1px solid ${colors.border}`,
+    borderBottom: `1px solid ${colors.border}`,
+    padding: "12px 0",
+  }}
+>
+  <div>
+    <p
+      style={{
+        color: colors.textMuted,
+        fontSize: "11px",
+        margin: "0 0 4px",
+        textTransform: "uppercase",
+      }}
+    >
+      Capacity
+    </p>
+    <p
+      style={{
+        color: colors.textMain,
+        fontSize: "18px",
+        fontWeight: "800",
+        margin: 0,
+      }}
+    >
+      {event.capacity ?? "Unlimited"}
+    </p>
+  </div>
+
+  <div>
+    <p
+      style={{
+        color: colors.textMuted,
+        fontSize: "11px",
+        margin: "0 0 4px",
+        textTransform: "uppercase",
+      }}
+    >
+      Reserved
+    </p>
+    <p
+      style={{
+        color: colors.accent,
+        fontSize: "18px",
+        fontWeight: "800",
+        margin: 0,
+      }}
+    >
+      {event.going_count || 0}
+    </p>
+  </div>
+
+  <div>
+    <p
+      style={{
+        color: colors.textMuted,
+        fontSize: "11px",
+        margin: "0 0 4px",
+        textTransform: "uppercase",
+      }}
+    >
+      Free
+    </p>
+    <p
+      style={{
+        color: event.is_full ? colors.error : colors.green,
+        fontSize: "18px",
+        fontWeight: "800",
+        margin: 0,
+      }}
+    >
+      {event.spots_left ?? "Open"}
+    </p>
+  </div>
+</div>
 
                     {event.description && (
                       <p style={{ color: colors.textMuted, fontSize: '14px', margin: '12px 0 0', lineHeight: '1.6', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
