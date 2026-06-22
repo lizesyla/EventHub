@@ -1,0 +1,200 @@
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.middleware.auth import get_current_user
+from app.models.event import Event
+from app.models.notification import Notification
+from app.models.rsvp import RSVP
+from app.models.user import User
+
+router = APIRouter(prefix="/api/events", tags=["RSVP"])
+
+RSVP_MILESTONES = {1, 5, 10, 25, 50, 100, 250, 500}
+
+
+def get_going_count(db: Session, event_id: int) -> int:
+    return db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going",
+    ).count()
+
+
+def rsvp_count_payload(event: Event, going_count: int) -> dict:
+    return {
+        "event_id": event.id,
+        "spots_taken": going_count,
+        "going_count": going_count,
+        "capacity": event.capacity,
+        "spots_left": None if event.capacity is None else max(event.capacity - going_count, 0),
+    }
+
+
+@router.post("/{event_id}/rsvp")
+def create_rsvp(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "attendee":
+        raise HTTPException(status_code=403, detail="Only attendees can reserve a spot.")
+
+    event = db.execute(
+        select(Event).where(Event.id == event_id).with_for_update()
+    ).scalar_one_or_none()
+
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if event.organizer_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot reserve a spot for your own event.")
+    if event.status != "upcoming":
+        raise HTTPException(status_code=400, detail="Reservations are only allowed for upcoming events.")
+
+    existing_rsvp = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.user_id == current_user.id,
+    ).first()
+
+    if existing_rsvp and existing_rsvp.status == "going":
+        raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
+
+    current_count = get_going_count(db, event_id)
+    if event.capacity is not None and current_count >= event.capacity:
+        raise HTTPException(status_code=400, detail="This event is full.")
+
+    try:
+        if existing_rsvp:
+            existing_rsvp.status = "going"
+            existing_rsvp.cancelled_at = None
+            rsvp = existing_rsvp
+        else:
+            rsvp = RSVP(
+                event_id=event_id,
+                user_id=current_user.id,
+                status="going",
+            )
+            db.add(rsvp)
+
+        new_count = current_count + 1
+        if new_count in RSVP_MILESTONES:
+            db.add(Notification(
+                user_id=event.organizer_id,
+                message=f"Your event '{event.title}' has reached {new_count} reservations.",
+                type="new_rsvp",
+            ))
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
+
+    db.refresh(rsvp)
+
+    return {
+        "message": "Reservation confirmed successfully.",
+        "user_id": current_user.id,
+        "rsvp": rsvp,
+        **rsvp_count_payload(event, new_count),
+    }
+
+
+@router.delete("/{event_id}/rsvp")
+def cancel_rsvp(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rsvp = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.user_id == current_user.id,
+        RSVP.status == "going",
+    ).first()
+
+    if not rsvp:
+        raise HTTPException(status_code=404, detail="No active reservation found for this event.")
+
+    rsvp.status = "cancelled"
+    rsvp.cancelled_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(rsvp)
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    going_count = get_going_count(db, event_id)
+
+    return {
+        "message": "Reservation cancelled successfully.",
+        "rsvp": rsvp,
+        **rsvp_count_payload(event, going_count),
+    }
+
+
+@router.get("/{event_id}/rsvp-count")
+def get_rsvp_count(
+    event_id: int,
+    db: Session = Depends(get_db),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    return rsvp_count_payload(event, get_going_count(db, event_id))
+
+
+@router.get("/{event_id}/rsvp-status")
+def get_rsvp_status(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rsvp = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.user_id == current_user.id,
+        RSVP.status == "going",
+    ).first()
+
+    return {"has_rsvped": rsvp is not None}
+
+
+@router.get("/{event_id}/guests")
+def get_guest_list(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    if event.organizer_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="You do not have permission to view this guest list.")
+
+    rsvps = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going",
+    ).order_by(RSVP.created_at.asc()).all()
+
+    guests = []
+    for rsvp in rsvps:
+        user = db.query(User).filter(User.id == rsvp.user_id).first()
+        if user:
+            guests.append({
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "rsvp_date": rsvp.created_at,
+            })
+
+    return {
+        "event_id": event_id,
+        "event_title": event.title,
+        "total_guests": len(guests),
+        "guests": guests,
+    }

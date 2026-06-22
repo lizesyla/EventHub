@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
@@ -24,14 +24,18 @@ export default function Register() {
 
   async function handleRegister() {
     setError("")
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please fill in all fields"); return
+
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+      setError("Please fill in all fields.")
+      return
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match"); return
+      setError("Passwords do not match.")
+      return
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters"); return
+      setError("Password must be at least 8 characters.")
+      return
     }
 
     const res = await fetch("http://localhost:8000/api/auth/register", {
@@ -39,11 +43,12 @@ export default function Register() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role: "attendee" }),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
+
     if (res.ok) {
       navigate("/login")
     } else {
-      setError(data.detail || "Registration failed")
+      setError(data.detail || "Registration failed.")
     }
   }
 
@@ -64,24 +69,24 @@ export default function Register() {
           <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>Internal Events Platform · Genpact</p>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Full Name</label>
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Full Name</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" style={inputStyle} />
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Email</label>
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@company.com" style={inputStyle} />
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Password</label>
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Password</label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Minimum 8 characters" style={inputStyle} />
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Confirm Password</label>
-          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+        <div style={{ marginBottom: "24px" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>Confirm Password</label>
+          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat password" style={inputStyle} />
         </div>
 
         <div style={{ marginBottom: '24px' }}>
@@ -106,9 +111,9 @@ export default function Register() {
           Create Account →
         </button>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', color: colors.textMuted, fontSize: '14px' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: colors.accent, fontWeight: '600', textDecoration: 'none' }}>Sign in</Link>
+        <p style={{ textAlign: "center", marginTop: "20px", color: colors.textMuted, fontSize: "14px" }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: colors.accent, fontWeight: "600", textDecoration: "none" }}>Sign in</Link>
         </p>
       </div>
     </div>

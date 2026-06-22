@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import ConfirmModal from "../components/ConfirmModal"
 
 const colors = {
   bgDark: '#0f172a',

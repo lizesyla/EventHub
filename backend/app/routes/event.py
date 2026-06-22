@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.middleware.auth import get_current_user, get_current_user_optional
 from app.models.event import Event
+from app.models.notification import Notification
 from app.models.rsvp import RSVP
 from app.models.user import User
 
@@ -82,7 +83,7 @@ async def create_event(
     description: str = Form(None),
     location: str = Form(...),
     date_time: str = Form(...),
-    capacity: int = Form(None),
+    capacity: int = Form(...),
     banner: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -115,10 +116,13 @@ async def create_event(
 
         banner_url = f"http://localhost:8000/{file_path}"
 
+    status = "upcoming" if current_user.role == "admin" else "pending"
+    pending_reason = None if current_user.role == "admin" else "new"
+
     db_event = Event(
-        title=title,
+        title=clean_title,
         description=description,
-        location=location,
+        location=clean_location,
         date_time=event_date,
         capacity=capacity,
         banner_url=banner_url,
@@ -127,6 +131,15 @@ async def create_event(
     )
 
     db.add(db_event)
+    db.flush()
+
+    if status == "pending":
+        notify_admins(
+            db,
+            f"New event '{db_event.title}' submitted by {current_user.name} is awaiting approval.",
+            "new_submission",
+        )
+
     db.commit()
     db.refresh(db_event)
 
@@ -142,7 +155,9 @@ def get_events(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
-    query = db.query(Event)
+    now = datetime.utcnow()
+    query = db.query(Event).filter(Event.date_time >= now)
+    query = query.filter(Event.status.notin_(["past", "cancelled"]))
 
     if current_user is None or current_user.role != "admin":
         query = query.filter(Event.status != "pending")
@@ -203,6 +218,13 @@ def approve_event(
         raise HTTPException(status_code=404, detail="Event not found.")
 
     event.status = "upcoming"
+    event.pending_reason = None
+    db.add(Notification(
+        user_id=event.organizer_id,
+        message=f"Your event '{event.title}' has been approved and is now live.",
+        type="approval",
+    ))
+
     db.commit()
     db.refresh(event)
 
@@ -223,6 +245,12 @@ def reject_event(
 
     event.status = "cancelled"
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+    db.add(Notification(
+        user_id=event.organizer_id,
+        message=f"Your event '{event.title}' was rejected by an admin.",
+        type="rejection",
+    ))
+
     db.commit()
     db.refresh(event)
 
@@ -246,6 +274,7 @@ def update_event(
         raise HTTPException(status_code=404, detail="Event not found.")
 
     ensure_owner(event, current_user)
+    requires_reapproval = False
 
     if title is not None:
         if len(title.strip()) < 3:
@@ -262,7 +291,7 @@ def update_event(
 
     if date_time is not None:
         try:
-            event.date_time = datetime.fromisoformat(date_time)
+            new_date = datetime.fromisoformat(date_time)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format.")
 
@@ -277,6 +306,15 @@ def update_event(
             )
         event.capacity = capacity
 
+    if requires_reapproval and current_user.role != "admin":
+        event.status = "pending"
+        event.pending_reason = "edited"
+        notify_admins(
+            db,
+            f"Event '{event.title}' was edited by {current_user.name} and needs re-approval.",
+            "event_edited",
+        )
+
     db.commit()
     db.refresh(event)
 
@@ -289,14 +327,13 @@ def archive_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    event = db.query(Event).filter(Event.id == event_id).first()
-
+    event = db.query(Event).filter(Event.id == event_id).with_for_update().first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
     ensure_owner(event, current_user)
-
     event.status = "past"
+
     db.commit()
     db.refresh(event)
 
@@ -316,8 +353,21 @@ def cancel_event(
     if current_user.role != "admin":
         ensure_owner(event, current_user)
 
+    rsvps = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going",
+    ).all()
+
+    for rsvp in rsvps:
+        db.add(Notification(
+            user_id=rsvp.user_id,
+            message=f"The event '{event.title}' you reserved has been cancelled.",
+            type="cancellation",
+        ))
+
     event.status = "cancelled"
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+
     db.commit()
     db.refresh(event)
 

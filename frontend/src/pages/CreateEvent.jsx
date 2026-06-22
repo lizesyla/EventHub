@@ -57,7 +57,6 @@ function CreateEvent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     const token = localStorage.getItem("token")
@@ -81,6 +80,7 @@ function CreateEvent() {
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       })
+      const data = await response.json().catch(() => ({}))
 
       const data = await response.json().catch(() => ({}))
 
@@ -149,9 +149,9 @@ function CreateEvent() {
           Submitted events stay pending until an admin approves them.
         </p>
 
-        {statusNote && (
-          <div style={{ marginBottom: "18px", padding: "12px", borderRadius: "10px", backgroundColor: colors.inputBg, border: `1px solid ${colors.border}`, color: colors.textMain, fontSize: "13px" }}>
-            {statusNote}
+        {success && (
+          <div style={{ padding: "14px 16px", backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "10px", color: colors.green, fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
+            {success} Redirecting to My Events...
           </div>
         )}
 
@@ -192,11 +192,7 @@ function CreateEvent() {
               <input type="file" accept="image/*" onChange={e => setBanner(e.target.files[0] || null)} style={{ color: colors.textMuted, fontSize: '13px' }} />
               {banner && <p style={{ color: colors.green, fontSize: '12px', margin: '8px 0 0', fontWeight: '600' }}>{banner.name}</p>}
             </div>
-            {errors.banner && (
-              <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>
-                {errors.banner}
-              </span>
-            )}
+            {errors.banner && <span style={{ color: colors.error, fontSize: "12px", marginTop: "4px", display: "block" }}>{errors.banner}</span>}
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
