@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
+import { apiUrl } from "../config/api"
+
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
@@ -34,7 +36,7 @@ export default function Register() {
       setError("Password must be at least 8 characters"); return
     }
 
-    const res = await fetch("http://localhost:8000/api/auth/register", {
+    const res = await fetch(apiUrl("api/auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role: "attendee" }),

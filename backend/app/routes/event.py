@@ -8,6 +8,8 @@ from app.middleware.auth import get_current_user, get_current_user_optional
 from datetime import datetime
 import os
 import shutil
+from app.config import settings
+
 
 router = APIRouter(prefix="/api/events", tags=["Events"])
 
@@ -20,7 +22,6 @@ def ensure_owner(event: Event, current_user: User):
         raise HTTPException(status_code=403, detail="Nuk keni leje për këtë event.")
 
 
-<<<<<<< HEAD
 def get_going_count(db: Session, event_id: int) -> int:
     return db.query(RSVP).filter(
         RSVP.event_id == event_id,
@@ -50,11 +51,9 @@ def serialize_event(event: Event, db: Session) -> dict:
         "going_count": going_count,
         "spots_left": spots_left,
     }
-=======
 def ensure_admin(current_user: User):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Vetëm admin mund ta kryejë këtë veprim.")
->>>>>>> Remove-Organizer
 
 
 @router.post("")
@@ -91,7 +90,11 @@ async def create_event(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(banner.file, buffer)
 
-        banner_url = f"http://localhost:8000/{file_path}"
+        # banner_url = f"http://localhost:8000/{file_path}"
+        banner_url = f"{settings.API_BASE_URL.rstrip('/')}/{file_path}"
+
+
+
 
     db_event = Event(
         title=title,
@@ -116,11 +119,6 @@ async def create_event(
 
 
 @router.get("")
-<<<<<<< HEAD
-def get_events(db: Session = Depends(get_db)):
-    events = db.query(Event).all()
-    return [serialize_event(event, db) for event in events]
-=======
 def get_events(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
@@ -131,7 +129,6 @@ def get_events(
         query = query.filter(Event.status != "pending")
 
     return query.order_by(Event.date_time.asc()).all()
->>>>>>> Remove-Organizer
 
 
 @router.get("/history")
@@ -284,143 +281,14 @@ def cancel_event(
     db.refresh(event)
     return {"message": "Event cancelled and RSVPs freed."}
 
-<<<<<<< HEAD
     return {"message": "Eventi u anulua dhe RSVP-të u liruan.", "event": event}
 
-=======
->>>>>>> Remove-Organizer
 @router.delete("/{event_id}")
 def delete_event(
     event_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-<<<<<<< HEAD
-    event = db.query(Event).filter(Event.id == event_id).first()
-
-    if not event:
-        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
-
-    ensure_owner(event, current_user)
-
-    db.query(RSVP).filter(RSVP.event_id == event_id).delete()
-    db.delete(event)
-    db.commit()
-
-    return {"message": "Eventi u fshi me sukses."}
-
-
-@router.post("/{event_id}/rsvp")
-def rsvp_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "attendee":
-        raise HTTPException(status_code=403, detail="Vetëm attendee mund të bëjë RSVP.")
-
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
-
-    if event.status != "upcoming":
-        raise HTTPException(status_code=400, detail="RSVP lejohet vetëm për evente upcoming.")
-
-    existing_rsvp = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.user_id == current_user.id
-    ).first()
-
-    if existing_rsvp and existing_rsvp.status == "going":
-        raise HTTPException(status_code=409, detail="Ju tashmë keni bërë RSVP për këtë event.")
-
-    current_count = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.status == "going"
-    ).count()
-
-    if event.capacity is not None and current_count >= event.capacity:
-        raise HTTPException(status_code=400, detail="Eventi është full. Nuk ka vende të lira.")
-
-    if existing_rsvp:
-        existing_rsvp.status = "going"
-        existing_rsvp.cancelled_at = None
-        rsvp = existing_rsvp
-    else:
-        rsvp = RSVP(
-            user_id=current_user.id,
-            event_id=event_id,
-            status="going"
-        )
-        db.add(rsvp)
-
-    db.commit()
-    db.refresh(rsvp)
-
-    return {
-        "message": "RSVP u krye me sukses.",
-        "event_id": event_id,
-        "user_id": current_user.id,
-        "spots_taken": current_count + 1,
-        "capacity": event.capacity,
-        "spots_left": None if event.capacity is None else max(event.capacity - (current_count + 1), 0)
-    }
-
-
-@router.delete("/{event_id}/rsvp")
-def cancel_rsvp(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    rsvp = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.user_id == current_user.id,
-        RSVP.status == "going"
-    ).first()
-
-    if not rsvp:
-        raise HTTPException(status_code=404, detail="Nuk u gjet RSVP aktive për këtë event.")
-
-    rsvp.status = "cancelled"
-    rsvp.cancelled_at = datetime.utcnow()
-
-    db.commit()
-    db.refresh(rsvp)
-
-    event = db.query(Event).filter(Event.id == event_id).first()
-    going_count = get_going_count(db, event_id)
-
-    return {
-        "message": "RSVP u anulua me sukses.",
-        "event_id": event_id,
-        "spots_taken": going_count,
-        "capacity": event.capacity if event else None,
-        "spots_left": None if not event or event.capacity is None else max(event.capacity - going_count, 0)
-    }
-
-
-@router.get("/{event_id}/rsvp-count")
-def get_rsvp_count(
-    event_id: int,
-    db: Session = Depends(get_db)
-):
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Eventi nuk u gjet.")
-
-    going_count = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.status == "going"
-    ).count()
-
-    return {
-        "event_id": event_id,
-        "going_count": going_count,
-        "capacity": event.capacity,
-        "spots_left": None if event.capacity is None else event.capacity - going_count
-    }
-=======
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only.")
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -430,4 +298,3 @@ def get_rsvp_count(
     db.delete(event)
     db.commit()
     return {"message": "Event deleted successfully."}
->>>>>>> Remove-Organizer

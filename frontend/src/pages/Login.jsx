@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { apiUrl } from "../config/api"
+
 
 const colors = {
   bgDark: "#0f172a",
@@ -59,7 +61,7 @@ export default function Login({ onLogin }) {
     setIsSubmitting(true)
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await fetch(apiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password }),
