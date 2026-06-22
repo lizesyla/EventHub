@@ -9,6 +9,7 @@ from alembic import context
 from app.models.user import User
 from app.models.event import Event
 from app.models.rsvp import RSVP
+from app.models.notification import Notification
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

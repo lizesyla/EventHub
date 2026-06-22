@@ -7,6 +7,7 @@ from app.models.event import Event
 from app.models.rsvp import RSVP
 from app.models.user import User
 from app.middleware.auth import get_current_user
+from app.models.notification import Notification
 
 router = APIRouter(prefix="/api/events", tags=["RSVP"])
 
@@ -66,6 +67,20 @@ def create_rsvp(
         status="going"
     )
     db.add(new_rsvp)
+
+    going_count = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going"
+    ).count()
+
+    if going_count in (1, 5, 10, 25, 50, 100, 250, 500):
+        notification = Notification(
+            user_id=event.organizer_id,
+            message=f"Your event '{event.title}' has reached {going_count} RSVPs!",
+            type="new_rsvp"
+        )
+        db.add(notification)
+
     db.commit()
     db.refresh(new_rsvp)
 

@@ -26,7 +26,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./backend:/backend
     environment:
       - DATABASE_URL=postgresql://postgres:password123@db:5432/eventhub
       - JWT_ACCESS_SECRET=sekret_i_gjate_ndrro

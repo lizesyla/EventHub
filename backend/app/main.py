@@ -4,6 +4,7 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import admin
 from app.routes import rsvp as rsvp_routes
+from app.routes import notifications as notification_routes
 
 
 from app.database import Base, engine
@@ -42,6 +43,7 @@ app.include_router(event_routes.router)
 app.include_router(profile.router)
 app.include_router(admin.router)
 app.include_router(rsvp_routes.router)
+app.include_router(notification_routes.router)
 
 @app.get("/")
 def read_root():

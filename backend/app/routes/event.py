@@ -5,6 +5,7 @@ from app.models.event import Event
 from app.models.rsvp import RSVP
 from app.models.user import User
 from app.middleware.auth import get_current_user, get_current_user_optional
+from app.models.notification import Notification
 from datetime import datetime
 import os
 import shutil
@@ -79,6 +80,17 @@ async def create_event(
     db.add(db_event)
     db.commit()
     db.refresh(db_event)
+
+    if status == "pending":
+        admins = db.query(User).filter(User.role == "admin").all()
+        for admin in admins:
+            notification = Notification(
+                user_id=admin.id,
+                message=f"New event '{db_event.title}' submitted by {current_user.name} is awaiting approval.",
+                type="new_submission"
+            )
+            db.add(notification)
+        db.commit()
 
     return {
         "message": "Event created successfully!",
@@ -229,12 +241,18 @@ def approve_event(
         raise HTTPException(status_code=404, detail="Event not found.")
 
     event.status = "upcoming"
-    event.pending_reason = None
+
+    notification = Notification(
+        user_id=event.organizer_id,
+        message=f"Your event '{event.title}' has been approved and is now live!",
+        type="approval"
+    )
+    db.add(notification)
+
     db.commit()
     db.refresh(event)
 
     return {"message": "Event approved successfully.", "event": event}
-
 
 @router.patch("/{event_id}/reject")
 def reject_event(
@@ -250,6 +268,14 @@ def reject_event(
 
     event.status = "cancelled"
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+
+    notification = Notification(
+        user_id=event.organizer_id,
+        message=f"Your event '{event.title}' was rejected by an admin.",
+        type="rejection"
+    )
+    db.add(notification)
+
     db.commit()
     db.refresh(event)
 
@@ -357,6 +383,19 @@ def cancel_event(
     if current_user.role != "admin":
         ensure_owner(event, current_user)
 
+    rsvps = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going"
+    ).all()
+
+    for rsvp in rsvps:
+        notification = Notification(
+            user_id=rsvp.user_id,
+            message=f"The event '{event.title}' you RSVP'd to has been cancelled.",
+            type="cancellation"
+        )
+        db.add(notification)
+
     event.status = "cancelled"
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
     db.commit()
@@ -376,6 +415,13 @@ def delete_event(
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+
+    notification = Notification(
+        user_id=event.organizer_id,
+        message=f"Your event '{event.title}' has been removed by an admin.",
+        type="deletion"
+    )
+    db.add(notification)
 
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
     db.delete(event)
