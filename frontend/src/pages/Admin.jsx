@@ -4,6 +4,7 @@ import { LayoutDashboard, Calendar, Users, Archive, LogOut, CheckCircle2, XCircl
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import NotificationBell from './NotificationBell'
 
 const darkColors = {
   bgDark: '#15101f', cardBg: '#221c30', inputBg: '#15101f',
@@ -46,7 +47,7 @@ function ProgressCircle({ value, max, label, color, colors, percent: percentOver
   )
 }
 export default function Admin() {
-  const [activePage, setActivePage] = useState('events')
+  const [activePage, setActivePage] = useState('dashboard')
   const [isDarkMode, setIsDarkMode] = useState(true)
   const colors = isDarkMode ? darkColors : lightColors
   const [events, setEvents] = useState([])
@@ -370,7 +371,7 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
       <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
         <div style={{ maxWidth: '1100px' }}>
 
-         <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
   <div>
     <h2 style={{ fontSize: '28px', fontWeight: '800', color: colors.textMain, margin: '0 0 6px', letterSpacing: '-1px' }}>
       {pageInfo[activePage].title}
@@ -380,27 +381,30 @@ const fullyBookedCount = stats.turnout.filter(e => e.capacity > 0 && e.going >= 
     </p>
   </div>
 
-  {activePage === 'dashboard' && (
-    <button
-      onClick={exportPDF}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '10px 18px',
-        background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
-        color: '#fff',
-        border: 'none',
-        borderRadius: '10px',
-        fontSize: '14px',
-        fontWeight: '700',
-        cursor: 'pointer',
-        boxShadow: `0 4px 12px ${colors.accent}55`
-      }}
-    >
-      Export PDF
-    </button>
-  )}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <NotificationBell iconColor={colors.textMain} />
+    {activePage === 'dashboard' && (
+      <button
+        onClick={exportPDF}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 18px',
+          background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
+          color: '#fff',
+          border: 'none',
+          borderRadius: '10px',
+          fontSize: '14px',
+          fontWeight: '700',
+          cursor: 'pointer',
+          boxShadow: `0 4px 12px ${colors.accent}55`
+        }}
+      >
+        Export PDF
+      </button>
+    )}
+  </div>
 </div>
 
          {(activePage === 'events' || activePage === 'users') && (

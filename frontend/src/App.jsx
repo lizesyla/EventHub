@@ -9,6 +9,7 @@ import Register from './pages/Register'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
+import NotificationBell from './pages/NotificationBell'
 
 function parseRole() {
   try {
@@ -91,6 +92,8 @@ function App() {
                   <Link to="/profile" style={linkStyle}>My Profile</Link>
                 </>
               )}
+
+              {token && <NotificationBell />}
 
               {token ? (
                 <button onClick={handleLogout} style={{ padding: '7px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
