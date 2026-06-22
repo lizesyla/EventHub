@@ -358,19 +358,24 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
           </button>
         </div>
       </div>
-
         {message && (
-          <div style={{ padding: '14px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px' }}>
-            {message}
-          </div>
-          <span style={{ color: colors.textMuted, fontSize: '13px', fontWeight: '600', flexShrink: 0 }}>
+          <><div
+          style={{
+            padding: '14px 16px',
+            backgroundColor: 'rgba(16,185,129,0.1)',
+            border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: '10px',
+            color: colors.green,
+            fontSize: '14px',
+            fontWeight: '600',
+            marginBottom: '24px'
+          }}>
+          {message}
+        </div><span style={{ color: colors.textMuted, fontSize: '13px', fontWeight: '600', flexShrink: 0 }}>
             {event.going}{event.capacity > 0 ? ` / ${event.capacity}` : ''}
-          </span>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+          </span></>
+)}</div>
+)}
 <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '24px', marginTop: '24px' }}>
   <h3 style={{ color: colors.textMain, fontSize: '16px', fontWeight: '700', margin: '0 0 20px' }}>
     Reservation Trends Over Time
@@ -392,10 +397,6 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
     </ResponsiveContainer>
   )}
 </div>
-
-
-              </>
-            )}
 
           {activePage === 'events' && (
             loadingEvents ? (
@@ -583,8 +584,6 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
             )
           )}
 
-        </div>
-      </div>
       <ConfirmModal
         open={Boolean(confirmAction)}
         title={confirmDetails.title}
@@ -594,6 +593,4 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
         onCancel={() => setConfirmAction(null)}
         onConfirm={runConfirmedAction}
       />
-    </div>
-  )
-}
+

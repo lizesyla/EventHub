@@ -82,8 +82,6 @@ function CreateEvent() {
       })
       const data = await response.json().catch(() => ({}))
 
-      const data = await response.json().catch(() => ({}))
-
       if (response.ok) {
         const reviewStatus = data.review_status || "pending"
 
