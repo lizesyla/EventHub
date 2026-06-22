@@ -7,10 +7,10 @@ import autoTable from "jspdf-autotable"
 import NotificationBell from './NotificationBell'
 import ConfirmModal from "../components/ConfirmModal"
 
-const darkColors = {
-  bgDark: '#15101f', cardBg: '#221c30', inputBg: '#15101f',
-  textMain: '#ffffff', textMuted: '#9d94ad', accent: '#ec4899',
-  accentSecondary: '#a855f7', border: '#332b42', error: '#ef4444', green: '#10b981'
+const colors = {
+  bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
+  textMain: '#ffffff', textMuted: '#94a3b8', accent: '#6366f1',
+  border: '#334155', error: '#ef4444', green: '#10b981',
 }
 
 const lightColors = {
@@ -62,113 +62,25 @@ export default function Admin() {
   const [trends, setTrends] = useState([])
   const [confirmAction, setConfirmAction] = useState(null)
   const token = localStorage.getItem("token")
-  const headers = { "Authorization": `Bearer ${token}` }
+  const headers = { Authorization: `Bearer ${token}` }
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events", { headers })
+    const authHeaders = { Authorization: `Bearer ${token}` }
+
+    fetch("http://localhost:8000/api/events", { headers: authHeaders })
       .then(r => r.json())
       .then(data => { setEvents(Array.isArray(data) ? data : []); setLoadingEvents(false) })
       .catch(() => setLoadingEvents(false))
 
-    fetch("http://localhost:8000/api/events/history", { headers })
-      .then(r => r.json())
-      .then(data => { setHistory(Array.isArray(data) ? data : []); setLoadingHistory(false) })
-      .catch(() => setLoadingHistory(false))
-
-    fetch("http://localhost:8000/api/admin/users", { headers })
+    fetch("http://localhost:8000/api/admin/users", { headers: authHeaders })
       .then(r => r.json())
       .then(data => { setUsers(Array.isArray(data) ? data : []); setLoadingUsers(false) })
       .catch(() => setLoadingUsers(false))
-
-      fetch("http://localhost:8000/api/admin/stats", { headers })
-      .then(r => r.json())
-      .then(data => setStats(data))
-      .catch(() => {})
-      
-      fetch("http://localhost:8000/api/admin/rsvp-trends", { headers })
-      .then(r => r.json())
-      .then(data => setTrends(Array.isArray(data) ? data : []))
-      .catch(() => {})
-  }, [])
-
-  function getConfirmDetails() {
-    const event = confirmAction?.event
-    const user = confirmAction?.user
-
-    if (confirmAction?.type === 'approve-event') {
-      return {
-        title: 'Approve event?',
-        message: `Are you sure you want to approve "${event?.title}"? This event will become visible to attendees.`,
-        confirmLabel: 'Approve',
-        tone: 'success',
-      }
-    }
-    if (confirmAction?.type === 'reject-event') {
-      return {
-        title: 'Reject event?',
-        message: `Are you sure you want to reject "${event?.title}"? The organizer will be notified.`,
-        confirmLabel: 'Reject',
-        tone: 'danger',
-      }
-    }
-    if (confirmAction?.type === 'cancel-event') {
-      return {
-        title: 'Cancel event?',
-        message: `Are you sure you want to cancel "${event?.title}"? Active reservations will be released and attendees will be notified.`,
-        confirmLabel: 'Cancel Event',
-        tone: 'warning',
-      }
-    }
-    if (confirmAction?.type === 'delete-event') {
-      return {
-        title: 'Delete event?',
-        message: `Are you sure you want to permanently delete "${event?.title}"? This cannot be undone.`,
-        confirmLabel: 'Delete',
-        tone: 'danger',
-      }
-    }
-    if (confirmAction?.type === 'activate-user') {
-      return {
-        title: 'Activate user?',
-        message: `Are you sure you want to activate ${user?.name}? They will be able to access EventHub.`,
-        confirmLabel: 'Activate',
-        tone: 'success',
-      }
-    }
-    if (confirmAction?.type === 'deactivate-user') {
-      return {
-        title: 'Deactivate user?',
-        message: `Are you sure you want to deactivate ${user?.name}? They will lose access until activated again.`,
-        confirmLabel: 'Deactivate',
-        tone: 'danger',
-      }
-    }
-
-    return {
-      title: 'Are you sure?',
-      message: 'Please confirm this action.',
-      confirmLabel: 'Confirm',
-      tone: 'danger',
-    }
-  }
-
-  async function runConfirmedAction() {
-    const action = confirmAction
-    if (!action) return
-
-    setConfirmAction(null)
-
-    if (action.type === 'approve-event') await approveEvent(action.event.id)
-    if (action.type === 'reject-event') await rejectEvent(action.event.id)
-    if (action.type === 'cancel-event') await cancelEvent(action.event.id)
-    if (action.type === 'delete-event') await deleteEvent(action.event.id, action.fromHistory)
-    if (action.type === 'activate-user') await handleApprove(action.user.id)
-    if (action.type === 'deactivate-user') await handleDeactivate(action.user.id)
-  }
+  }, [token])
 
   async function approveEvent(eventId) {
     const res = await fetch(`http://localhost:8000/api/events/${eventId}/approve`, {
-      method: 'PATCH', headers
+      method: 'PATCH', headers,
     })
     if (res.ok) {
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' } : e))
@@ -179,7 +91,7 @@ export default function Admin() {
 
   async function rejectEvent(eventId) {
     const res = await fetch(`http://localhost:8000/api/events/${eventId}/reject`, {
-      method: 'PATCH', headers
+      method: 'PATCH', headers,
     })
     if (res.ok) {
       const rejected = events.find(e => e.id === eventId)
@@ -205,7 +117,7 @@ export default function Admin() {
 
   async function deleteEvent(eventId, fromHistory) {
     const res = await fetch(`http://localhost:8000/api/events/${eventId}`, {
-      method: 'DELETE', headers
+      method: 'DELETE', headers,
     })
     if (res.ok) {
       if (fromHistory) {
@@ -218,9 +130,21 @@ export default function Admin() {
     }
   }
 
-  async function handleApprove(userId) {
+  async function handleCancelEvent(eventId) {
+    if (!window.confirm("Cancel this event?")) return
+    const res = await fetch(`http://localhost:8000/api/events/${eventId}/cancel`, {
+      method: 'PATCH', headers,
+    })
+    if (res.ok) {
+      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'cancelled' } : e))
+      setMessage('Event cancelled.')
+      setTimeout(() => setMessage(''), 3000)
+    }
+  }
+
+  async function handleActivateUser(userId) {
     const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/approve`, {
-      method: 'PATCH', headers
+      method: 'PATCH', headers,
     })
     if (res.ok) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_approved: true } : u))
@@ -277,26 +201,18 @@ function exportPDF() {
 
   async function handleDeactivate(userId) {
     const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/deactivate`, {
-      method: 'PATCH', headers
+      method: 'PATCH', headers,
     })
     if (res.ok) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_approved: false } : u))
     }
   }
 
-  const eventStatusInfo = (status, dateTime) => {
-  if (status === 'pending') return { Icon: Clock, label: 'Pending', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' }
-  if (status === 'cancelled') return { Icon: XCircle, label: 'Cancelled', bg: 'rgba(239,68,68,0.15)', color: colors.error }
-  if (status === 'past') return { Icon: PackageCheck, label: 'Archived', bg: colors.textMuted + '22', color: colors.textMuted }
-  if (dateTime && new Date(dateTime) < new Date()) {
-    return { Icon: PackageCheck, label: 'Expired', bg: colors.textMuted + '22', color: colors.textMuted }
-  }
-  return { Icon: CheckCircle2, label: 'Active', bg: 'rgba(16,185,129,0.15)', color: colors.green }
-}
-
-  const roleColor = (role) => {
-    if (role === 'admin') return { bg: 'rgba(239,68,68,0.15)', color: colors.error, border: colors.error }
-    return { bg: colors.accent + '22', color: colors.accent, border: colors.accent }
+  const eventStatusLabel = (status) => {
+    if (status === 'pending') return 'Pending'
+    if (status === 'cancelled') return 'Cancelled'
+    if (status === 'past') return 'Archived'
+    return 'Active'
   }
 
   const totalEvents = events.length + history.length
@@ -311,7 +227,8 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
     users: { title: 'Users', subtitle: 'Manage all user accounts' },
     history: { title: 'History', subtitle: 'Past and cancelled events' },
   }
-  const confirmDetails = getConfirmDetails()
+
+  const roleIcon = (role) => role === 'admin' ? 'Admin' : 'Attendee'
 
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: '100vh', fontFamily: "'Inter', sans-serif", display: 'flex' }}>
@@ -442,234 +359,9 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-        <div style={{ maxWidth: '1100px' }}>
-
-      <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-  <div>
-    <h2 style={{ fontSize: '28px', fontWeight: '800', color: colors.textMain, margin: '0 0 6px', letterSpacing: '-1px' }}>
-      {pageInfo[activePage].title}
-    </h2>
-    <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>
-      {pageInfo[activePage].subtitle}
-    </p>
-  </div>
-
-  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-    {pendingReviewCount > 0 && (
-      <button
-        onClick={() => setActivePage('events')}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 14px',
-          backgroundColor: '#f59e0b22',
-          color: '#f59e0b',
-          border: '1px solid #f59e0b55',
-          borderRadius: '10px',
-          fontSize: '13px',
-          fontWeight: '800',
-          cursor: 'pointer',
-        }}
-      >
-        <Clock size={15} />
-        Review Requests
-        <span style={{
-          minWidth: '20px',
-          height: '20px',
-          borderRadius: '999px',
-          backgroundColor: '#f59e0b',
-          color: '#1a162e',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '11px',
-          fontWeight: '900',
-          padding: '0 6px',
-        }}>
-          {pendingReviewCount}
-        </span>
-      </button>
-    )}
-    <NotificationBell iconColor={colors.textMain} />
-    {activePage === 'dashboard' && (
-      <button
-        onClick={exportPDF}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 18px',
-          background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
-          color: '#fff',
-          border: 'none',
-          borderRadius: '10px',
-          fontSize: '14px',
-          fontWeight: '700',
-          cursor: 'pointer',
-          boxShadow: `0 4px 12px ${colors.accent}55`
-        }}
-      >
-        Export PDF
-      </button>
-    )}
-  </div>
-</div>
-
-         {(activePage === 'events' || activePage === 'users') && (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-              {(activePage === 'users' ? [
-                { label: 'Total Users', value: users.length, Icon: Users, color: colors.accent },
-                { label: 'Active Users', value: users.filter(u => u.is_approved).length, Icon: UserCheck, color: colors.green },
-                { label: 'Deactivated', value: users.filter(u => !u.is_approved).length, Icon: UserX, color: colors.error },
-                { label: 'Admins', value: users.filter(u => u.role === 'admin').length, Icon: Shield, color: colors.accentSecondary },
-              ] : activePage === 'events' ? [
-                { label: 'Total Events', value: totalEvents, Icon: Calendar, color: colors.accent },
-                { label: 'Pending Review', value: events.filter(e => e.status === 'pending').length, Icon: Clock, color: '#f59e0b' },
-                { label: 'Active Events', value: events.filter(e => e.status === 'upcoming').length, Icon: CheckCircle2, color: colors.green },
-                { label: 'Cancelled', value: history.filter(e => e.status === 'cancelled').length, Icon: XCircle, color: colors.error },
-              ] : [
-                { label: 'Total Events', value: totalEvents, Icon: Calendar, color: colors.accent },
-                { label: 'Pending Review', value: events.filter(e => e.status === 'pending').length, Icon: Clock, color: '#f59e0b' },
-                { label: 'Active Events', value: events.filter(e => e.status === 'upcoming').length, Icon: CheckCircle2, color: colors.green },
-                { label: 'Cancelled', value: history.filter(e => e.status === 'cancelled').length, Icon: XCircle, color: colors.error },
-                { label: 'Total Users', value: users.length, Icon: Users, color: colors.accentSecondary },
-              ]).map((stat, i) => {
-                const Icon = stat.Icon
-                return (
-                  <div key={i} style={{ backgroundColor: colors.cardBg, padding: '20px', borderRadius: '18px', border: `1px solid ${colors.border}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <p style={{ fontSize: '24px', fontWeight: '800', color: stat.color, margin: '0 0 4px' }}>{stat.value}</p>
-                        <p style={{ fontSize: '12px', color: colors.textMuted, margin: 0 }}>{stat.label}</p>
-                      </div>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: stat.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon size={20} color={stat.color} />
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {message && (
-            <div style={{ padding: '14px 16px', backgroundColor: colors.green + '22', border: `1px solid ${colors.green}55`, borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={16} />
-              {message}
-            </div>
-          )}
-
-          {activePage === 'dashboard' && (
-              <>
-                <div style={{
-                  backgroundColor: colors.cardBg,
-                  borderRadius: '20px',
-                  border: `1px solid ${colors.border}`,
-                  padding: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '24px',
-                  marginBottom: '32px'
-                }}>
-                  <div>
-                    <p style={{ color: colors.textMuted, fontSize: '14px', margin: '0 0 6px' }}>Welcome back, Admin</p>
-                    <h3 style={{ color: colors.textMain, fontSize: '24px', fontWeight: '800', margin: '0 0 8px' }}>
-                      Oversee your events
-                    </h3>
-                    <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0, maxWidth: '320px' }}>
-                      Review submissions, manage users, and keep everything running smoothly.
-                    </p>
-                  </div>
-                  <img
-                    src="/images/event-illustration.png"
-                    alt="Events illustration"
-                    style={{ width: '180px', height: 'auto', flexShrink: 0 }}
-                  />
-                </div>
-                
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                    <ProgressCircle value={totalEvents} max={totalEvents || 1} label="Total Events" color={colors.accent} colors={colors} />
-                  </div>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                    <ProgressCircle value={events.filter(e => e.status === 'upcoming').length} max={totalEvents || 1} label="Active Events" color={colors.green} colors={colors} />
-                  </div>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                    <ProgressCircle value={events.filter(e => e.status === 'pending').length} max={totalEvents || 1} label="Pending Review" color="#f59e0b" colors={colors} />
-                  </div>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                   <ProgressCircle value={`${totalCapacity > 0 ? Math.round((totalGoing / totalCapacity) * 100) : 0}%`} max={100} percent={totalCapacity > 0 ? (totalGoing / totalCapacity) * 100 : 0} label="Capacity Filled" color={colors.accentSecondary} colors={colors} />
-                  </div>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                    <ProgressCircle value={fullyBookedCount} max={totalEvents || 1} label="Fully Booked" color={colors.error} colors={colors} />
-                  </div>
-                  <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '16px' }}>
-                    <ProgressCircle value={users.length} max={users.length || 1} label="Total Users" color="#06b6d4" colors={colors} />
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '24px' }}>
-  <h3 style={{ color: colors.textMain, fontSize: '16px', fontWeight: '700', margin: '0 0 20px' }}>
-    Turnout per Event
-  </h3>
-
-  {stats.turnout.length === 0 ? (
-  <p style={{ color: colors.textMuted, textAlign: 'center', padding: '40px' }}>No event data yet.</p>
-) : (
-  <div style={{ overflowX: 'auto' }}>
-    <div style={{ width: `${Math.max(stats.turnout.length * 90, 600)}px`, height: '300px' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={stats.turnout}>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-          <XAxis dataKey="title" stroke={colors.textMuted} fontSize={11} angle={-35} textAnchor="end" height={70} />
-          <YAxis stroke={colors.textMuted} fontSize={11} />
-          <Tooltip
-            contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
-            labelStyle={{ color: colors.textMain }}
-          />
-          <Bar dataKey="going" fill={colors.accent} name="Reservations" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="capacity" fill={colors.accentSecondary} name="Capacity" radius={[6, 6, 0, 0]} opacity={0.4} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-)}
-
-  </div>
-
-<div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '24px', marginTop: '24px' }}>
-  <h3 style={{ color: colors.textMain, fontSize: '16px', fontWeight: '700', margin: '0 0 20px' }}>
-    Top 5 Most Popular Events
-  </h3>
-  {stats.popular_events.length === 0 ? (
-    <p style={{ color: colors.textMuted, textAlign: 'center', padding: '20px' }}>No reservation data yet.</p>
-  ) : (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {stats.popular_events.map((event, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '28px', height: '28px', borderRadius: '50%',
-            background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentSecondary})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '12px', fontWeight: '800', color: '#fff', flexShrink: 0
-          }}>
-            {i + 1}
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: colors.textMain, fontSize: '14px', fontWeight: '600', margin: '0 0 4px' }}>{event.title}</p>
-            <div style={{ width: '100%', height: '6px', backgroundColor: colors.border, borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${event.capacity > 0 ? Math.min((event.going / event.capacity) * 100, 100) : (event.going > 0 ? 100 : 0)}%`,
-                background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
-                borderRadius: '3px'
-              }} />
-            </div>
+        {message && (
+          <div style={{ padding: '14px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px' }}>
+            {message}
           </div>
           <span style={{ color: colors.textMuted, fontSize: '13px', fontWeight: '600', flexShrink: 0 }}>
             {event.going}{event.capacity > 0 ? ` / ${event.capacity}` : ''}
@@ -709,16 +401,16 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
             loadingEvents ? (
               <p style={{ color: colors.textMuted }}>Loading...</p>
             ) : events.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}` }}>
-                <p style={{ color: colors.textMuted }}>No upcoming events.</p>
+              <div style={{ textAlign: 'center', padding: '60px', backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}` }}>
+                <p style={{ color: colors.textMuted }}>No events found.</p>
               </div>
             ) : (
-              <div style={{ backgroundColor: colors.cardBg, borderRadius: '16px', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: '12px', border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                      {['Title', 'Location', 'Date', 'Status', 'Actions'].map(h => (
-                        <th key={h} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>{h}</th>
+                      {['Event', 'Location', 'Date', 'Status', 'Actions'].map(header => (
+                        <th key={header} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '700', color: colors.textMuted }}>{header}</th>
                       ))}
                     </tr>
                   </thead>
@@ -745,28 +437,24 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
                             )}
                           </td>
                           <td style={{ padding: '16px' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              {event.status === 'pending' ? (
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              {event.status === 'pending' && (
                                 <>
-                                  <button onClick={() => setConfirmAction({ type: 'approve-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                    <CheckCircle2 size={14} /> Approve
+                                  <button onClick={() => approveEvent(event.id)} style={{ padding: '6px 12px', backgroundColor: 'rgba(16,185,129,0.15)', color: colors.green, border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                    Approve
                                   </button>
-                                  <button onClick={() => setConfirmAction({ type: 'reject-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                    <XCircle size={14} /> Reject
-                                  </button>
-                                  <button onClick={() => setConfirmAction({ type: 'delete-event', event, fromHistory: false })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                    <Trash2 size={14} /> Delete
+                                  <button onClick={() => rejectEvent(event.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                    Reject
                                   </button>
                                 </>
-                              ) : (
-                                <>
-                                  <button onClick={() => setConfirmAction({ type: 'cancel-event', event })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                    <Ban size={14} /> Cancel
-                                  </button>
-                                  <button onClick={() => setConfirmAction({ type: 'delete-event', event, fromHistory: false })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                    <Trash2 size={14} /> Delete
-                                  </button>
-                                </>
+                              )}
+                              <button onClick={() => handleDeleteEvent(event.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                Delete
+                              </button>
+                              {event.status === 'upcoming' && (
+                                <button onClick={() => handleCancelEvent(event.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', color: '#f59e0b', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  Cancel
+                                </button>
                               )}
                             </div>
                           </td>
@@ -853,9 +541,9 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: colors.accent + '22', border: `1px solid ${colors.accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: colors.accent, flexShrink: 0 }}>
-                                {user.name.charAt(0).toUpperCase()}
+                                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                               </div>
-                              <span style={{ color: colors.textMain, fontSize: '14px', fontWeight: '600' }}>{user.name}</span>
+                              <span style={{ color: colors.textMain, fontSize: '14px', fontWeight: '600' }}>{user.name || 'No Name'}</span>
                             </div>
                           </td>
                           <td style={{ padding: '16px', color: colors.textMuted, fontSize: '14px' }}>{user.email}</td>
@@ -865,24 +553,23 @@ const pendingReviewCount = events.filter(e => e.status === 'pending').length
                             </span>
                           </td>
                           <td style={{ padding: '16px' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '3px 10px', borderRadius: '12px', fontWeight: '600',
-                              backgroundColor: user.is_approved ? colors.green + '22' : colors.error + '22',
-                              color: user.is_approved ? colors.green : colors.error
+                            <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '12px', fontWeight: '600',
+                              backgroundColor: user.is_approved ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                              color: user.is_approved ? '#10b981' : '#ef4444',
                             }}>
-                              {user.is_approved ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
                               {user.is_approved ? 'Active' : 'Deactivated'}
                             </span>
                           </td>
                           <td style={{ padding: '16px' }}>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               {!user.is_approved && user.role !== 'admin' && (
-                                <button onClick={() => setConfirmAction({ type: 'activate-user', user })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: colors.green + '22', color: colors.green, border: `1px solid ${colors.green}55`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                  <UserCheck size={14} /> Activate
+                                <button onClick={() => handleActivateUser(user.id)} style={{ padding: '6px 12px', backgroundColor: 'rgba(16,185,129,0.15)', color: colors.green, border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  Activate
                                 </button>
                               )}
                               {user.is_approved && user.role !== 'admin' && (
-                                <button onClick={() => setConfirmAction({ type: 'deactivate-user', user })} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                                  <UserX size={14} /> Deactivate
+                                <button onClick={() => handleDeactivateUser(user.id)} style={{ padding: '6px 12px', backgroundColor: 'transparent', color: colors.error, border: `1px solid ${colors.error}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                                  Deactivate
                                 </button>
                               )}
                             </div>

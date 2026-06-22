@@ -11,7 +11,7 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(Text, nullable=False)
     role = Column(String(20), nullable=False, default="attendee")
-    is_approved = Column(Boolean, nullable=False, default=True)
+    is_approved = Column(Boolean, default=True)
     refresh_token = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

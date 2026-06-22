@@ -2,10 +2,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
-
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.models import event, notification, rsvp, user
+from app.models import user, event, rsvp
+from app.routes import auth, event as event_routes, profile, admin
 from app.middleware.auth import get_current_user, require_role
 from app.routes import admin, auth, event as event_routes, notifications as notification_routes, profile
 from app.routes import rsvp as rsvp_routes
@@ -45,7 +45,6 @@ app.include_router(notification_routes.router)
 def read_root():
     return {"message": "Welcome to EventHub API!"}
 
-
 @app.get("/api/protected")
 def protected_route(current_user=Depends(get_current_user)):
     return {
@@ -54,16 +53,12 @@ def protected_route(current_user=Depends(get_current_user)):
         "role": current_user.role
     }
 
-
 @app.get("/api/attendee")
 def attendee_route(
     current_user=Depends(require_role("attendee", "admin"))
 ):
     return {"message": "Attendee access granted"}
 
-
 @app.get("/api/admin")
-def admin_route(
-    current_user=Depends(require_role("admin"))
-):
+def admin_route(current_user=Depends(require_role("admin"))):
     return {"message": "Admin access granted"}

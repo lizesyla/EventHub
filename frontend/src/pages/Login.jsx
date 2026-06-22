@@ -29,7 +29,9 @@ const inputStyle = {
 function getErrorMessage(detail) {
   if (typeof detail === "string") return detail
   if (Array.isArray(detail)) {
-    return detail.map(item => item.msg || item.message || "Invalid login request.").join(" ")
+    return detail
+      .map(item => item.msg || item.message || "Invalid login request.")
+      .join(" ")
   }
   return "The email or password you entered is incorrect."
 }
@@ -62,11 +64,13 @@ export default function Login({ onLogin }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password }),
       })
-      const data = await res.json().catch(() => ({}))
+
+      const contentType = res.headers.get("content-type") || ""
+      const data = contentType.includes("application/json") ? await res.json() : {}
 
       if (!res.ok) {
         const message = getErrorMessage(data.detail)
-        if (message.toLowerCase().includes("pending admin approval")) {
+        if (message.includes("pending admin approval")) {
           setIsPending(true)
         } else {
           setError(message || `Login failed with status ${res.status}.`)
@@ -85,11 +89,9 @@ export default function Login({ onLogin }) {
 
       if (onLogin) onLogin(data.access_token)
 
-      if (data.user.role === "admin") {
-        window.location.href = "/admin"
-      } else {
-        window.location.href = "/"
-      }
+      const role = data.user.role
+      if (role === "admin") window.location.href = "/admin"
+      else window.location.href = "/"
     } catch {
       setError("Could not connect to the server.")
     } finally {
@@ -100,19 +102,17 @@ export default function Login({ onLogin }) {
   return (
     <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
       <div style={{ backgroundColor: colors.cardBg, padding: "40px 36px", borderRadius: "20px", border: `1px solid ${colors.border}`, width: "100%", maxWidth: "400px" }}>
-        <Link
-          to="/"
-          style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: colors.textMuted, textDecoration: "none", fontSize: "14px", marginBottom: "24px" }}
+        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: colors.textMuted, textDecoration: "none", fontSize: "14px", marginBottom: "24px" }}
           onMouseEnter={e => e.currentTarget.style.color = colors.accent}
           onMouseLeave={e => e.currentTarget.style.color = colors.textMuted}
         >
-          Back to Home
+          ← Back to Home
         </Link>
 
         <div style={{ marginBottom: "32px" }}>
           <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENTHUB</p>
           <h2 style={{ color: colors.textMain, fontSize: "26px", fontWeight: "800", margin: "0 0 8px", letterSpacing: "-0.5px" }}>Welcome back</h2>
-          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform - Genpact</p>
+          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform · Genpact</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -160,7 +160,7 @@ export default function Login({ onLogin }) {
             disabled={isSubmitting}
             style={{ width: "100%", padding: "14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.75 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "all 0.2s" }}
           >
-            {isSubmitting ? "Signing in..." : "Sign In"}
+            {isSubmitting ? "Signing in..." : "Sign In →"}
           </button>
         </form>
 

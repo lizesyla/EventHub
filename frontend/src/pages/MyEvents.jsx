@@ -1,11 +1,9 @@
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { useEffect, useState } from "react"
-import ConfirmModal from "../components/ConfirmModal"
 
 const colors = {
   bgDark: "#0f172a",
   cardBg: "#1e293b",
-  inputBg: "#0f172a",
   textMain: "#ffffff",
   textMuted: "#94a3b8",
   accent: "#6366f1",
@@ -23,30 +21,11 @@ function formatDate(value) {
   })
 }
 
-function eventStatusLabel(status) {
-  if (status === "pending") return "Pending Approval"
-  if (status === "cancelled") return "Cancelled"
-  if (status === "past") return "Archived"
-  return "Live"
-}
-
-function eventStatusColor(status) {
-  if (status === "pending") return { bg: "rgba(245,158,11,0.15)", color: colors.warning }
+function statusStyle(status) {
+  if (status === "upcoming") return { bg: "rgba(16,185,129,0.15)", color: colors.green }
   if (status === "cancelled") return { bg: "rgba(239,68,68,0.15)", color: colors.error }
-  if (status === "past") return { bg: "rgba(148,163,184,0.15)", color: colors.textMuted }
-  return { bg: "rgba(16,185,129,0.15)", color: colors.green }
-}
-
-function reservationRatio(event) {
-  const reserved = Number(event.going_count ?? event.going) || 0
-  const capacity = Number(event.capacity) || 0
-  return `${reserved}/${capacity}`
-}
-
-function availableSpots(event) {
-  const capacity = Number(event.capacity) || 0
-  const reserved = Number(event.going_count ?? event.going) || 0
-  return Math.max(capacity - reserved, 0)
+  if (status === "past") return { bg: "rgba(245,158,11,0.15)", color: colors.warning }
+  return { bg: "rgba(148,163,184,0.15)", color: colors.textMuted }
 }
 
 function EventBanner({ event }) {
@@ -58,15 +37,15 @@ function EventBanner({ event }) {
         src={event.banner_url}
         alt="Event banner"
         onError={() => setHasError(true)}
-        style={{ width: "100%", height: "160px", objectFit: "cover", display: "block" }}
+        style={{ width: "100%", height: "180px", objectFit: "cover", display: "block" }}
       />
     )
   }
 
   return (
-    <div style={{ width: "100%", height: "160px", background: "linear-gradient(135deg, #4f46e5, #0f766e)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", padding: "20px", textAlign: "center" }}>
+    <div style={{ width: "100%", height: "180px", background: "linear-gradient(135deg, #4f46e5, #0f766e)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", padding: "20px", textAlign: "center" }}>
       <div>
-        <p style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", opacity: 0.8, margin: "0 0 8px" }}>EventHub</p>
+        <p style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", opacity: 0.8, margin: "0 0 8px" }}>Event Banner</p>
         <p style={{ fontSize: "20px", fontWeight: "800", margin: 0 }}>{event.title}</p>
       </div>
     </div>
@@ -77,41 +56,22 @@ export default function MyEvents() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState("")
-  const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({})
-  const [guestModalEvent, setGuestModalEvent] = useState(null)
-  const [guests, setGuests] = useState([])
-  const [loadingGuests, setLoadingGuests] = useState(false)
-  const [myStats, setMyStats] = useState(null)
-  const [cancelEventTarget, setCancelEventTarget] = useState(null)
   const token = localStorage.getItem("token")
 
   useEffect(() => {
-    fetchMyEvents()
-    fetchMyStats()
-  }, [token])
-
-  function fetchMyEvents() {
-    setLoading(true)
     fetch("http://localhost:8000/api/events/mine", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(response => response.json())
-      .then(data => setEvents(Array.isArray(data) ? data : []))
-      .catch(() => setEvents([]))
-      .finally(() => setLoading(false))
-  }
+      .then(r => r.json())
+      .then(data => {
+        setEvents(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [token])
 
-  function fetchMyStats() {
-    fetch("http://localhost:8000/api/events/mine/stats", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(response => response.json())
-      .then(data => setMyStats(data && !Array.isArray(data) ? data : null))
-      .catch(() => setMyStats(null))
-  }
-
-  async function cancelEvent(eventId) {
+  async function handleCancel(eventId) {
+    if (!window.confirm("Are you sure you want to cancel this event? RSVPs will be released.")) return
     setMessage("")
 
     try {
@@ -123,131 +83,39 @@ export default function MyEvents() {
 
       if (res.ok) {
         setEvents(prev => prev.map(event =>
-          event.id === eventId
-            ? { ...event, status: "cancelled", going_count: 0, spots_left: event.capacity ?? null }
-            : event
+          event.id === eventId ? { ...event, status: "cancelled", going_count: 0, spots_left: event.capacity ?? null } : event
         ))
-        fetchMyStats()
         setMessage(data.message || "Event cancelled successfully.")
       } else {
         setMessage(data.detail || "Could not cancel event.")
       }
     } catch {
       setMessage("Could not connect to the server.")
-    } finally {
-      setTimeout(() => setMessage(""), 4000)
     }
   }
 
-  function confirmCancelEvent() {
-    const event = cancelEventTarget
-    if (!event) return
-
-    setCancelEventTarget(null)
-    cancelEvent(event.id)
-  }
-
-  async function viewGuests(event) {
-    setGuestModalEvent(event)
-    setLoadingGuests(true)
-    try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}/guests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      setGuests(Array.isArray(data.guests) ? data.guests : [])
-    } catch {
-      setGuests([])
-    } finally {
-      setLoadingGuests(false)
-    }
-  }
-
-  function closeGuestModal() {
-    setGuestModalEvent(null)
-    setGuests([])
-  }
-
-  function startEdit(event) {
-    setEditingId(event.id)
-    setEditForm({
-      title: event.title,
-      description: event.description || "",
-      location: event.location,
-      date_time: event.date_time?.slice(0, 16) || "",
-      capacity: event.capacity ?? "",
-    })
-  }
-
-  async function saveEdit(event) {
-    const capacityValue = editForm.capacity
-    if (!editForm.title?.trim() || editForm.title.trim().length < 3) {
-      alert("Title must be at least 3 characters.")
-      return
-    }
-    if (!editForm.location?.trim()) {
-      alert("Location cannot be empty.")
-      return
-    }
-    if (!editForm.date_time) {
-      alert("Date and time are required.")
-      return
-    }
-    if (capacityValue === "") {
-      alert("Capacity is required.")
-      return
-    }
-    const capacityNumber = Number(capacityValue)
-    if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
-      alert("Capacity must be a whole number of at least 1.")
-      return
-    }
-    if (capacityNumber < (Number(event.going_count) || 0)) {
-      alert("Capacity cannot be lower than the current reservation count.")
-      return
-    }
-
-    const formData = new FormData()
-    formData.append("title", editForm.title.trim())
-    formData.append("description", editForm.description || "")
-    formData.append("location", editForm.location.trim())
-    formData.append("date_time", editForm.date_time)
-    formData.append("capacity", capacityValue)
+  async function handleArchive(eventId) {
+    if (!window.confirm("Archive this event?")) return
+    setMessage("")
 
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}`, {
-        method: "PUT",
+      const res = await fetch(`http://localhost:8000/api/events/${eventId}/archive`, {
+        method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
-        body: formData,
       })
       const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
-        setEvents(prev => prev.map(item => item.id === event.id ? data.event : item))
-        setEditingId(null)
-        fetchMyStats()
-        setMessage(data.requires_reapproval
-          ? "Saved. This event was sent back for admin re-approval."
-          : "Event updated successfully.")
-        setTimeout(() => setMessage(""), 4000)
+        setEvents(prev => prev.map(event =>
+          event.id === eventId ? { ...event, status: "past" } : event
+        ))
+        setMessage(data.message || "Event archived successfully.")
       } else {
-        alert(data.detail || "Could not save changes.")
+        setMessage(data.detail || "Could not archive event.")
       }
     } catch {
-      alert("Could not connect to the server.")
+      setMessage("Could not connect to the server.")
     }
-  }
-
-  const inputStyle = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    border: `1px solid ${colors.border}`,
-    backgroundColor: colors.inputBg,
-    color: colors.textMain,
-    fontSize: "14px",
-    marginTop: "4px",
-    boxSizing: "border-box",
   }
 
   const totalReserved = events.reduce((sum, event) => sum + (Number(event.going_count) || 0), 0)
@@ -259,10 +127,10 @@ export default function MyEvents() {
           <div>
             <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 10px" }}>MY EVENTS</p>
             <h2 style={{ fontSize: "32px", fontWeight: "800", color: colors.textMain, margin: "0 0 8px" }}>My Events</h2>
-            <p style={{ color: colors.textMuted, fontSize: "15px", margin: 0 }}>Manage your event submissions, capacity, and reservations.</p>
+            <p style={{ color: colors.textMuted, fontSize: "15px", margin: 0 }}>Manage the events you submitted, capacity, and reservations</p>
           </div>
           <Link to="/create-event" style={{ padding: "13px 24px", backgroundColor: colors.accent, color: "#fff", borderRadius: "10px", textDecoration: "none", fontSize: "14px", fontWeight: "700", boxShadow: "0 4px 20px rgba(99,102,241,0.4)" }}>
-            Create Event
+            + Create Event
           </Link>
         </div>
 
@@ -279,26 +147,6 @@ export default function MyEvents() {
             </div>
           ))}
         </div>
-
-        {myStats && myStats.total_events > 0 && (
-          <div style={{ marginBottom: "32px", backgroundColor: colors.cardBg, borderRadius: "12px", border: `1px solid ${colors.border}`, padding: "20px" }}>
-            <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "800", margin: "0 0 14px" }}>Popular Events</h3>
-            {myStats.popular_events?.length ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {myStats.popular_events.map((event, index) => (
-                  <div key={`${event.title}-${index}`} style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
-                    <span style={{ color: colors.textMain, fontSize: "13px", fontWeight: "600" }}>{event.title}</span>
-                    <span style={{ color: colors.textMuted, fontSize: "13px" }}>
-                      {reservationRatio(event)} Reservations
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ color: colors.textMuted, margin: 0 }}>No reservation data yet.</p>
-            )}
-          </div>
-        )}
 
         {message && (
           <div style={{ padding: "12px 14px", backgroundColor: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", marginBottom: "18px", color: "#a5b4fc", fontSize: "14px", fontWeight: "600" }}>
@@ -319,95 +167,59 @@ export default function MyEvents() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "22px" }}>
             {events.map(event => {
-              const status = eventStatusColor(event.status || "upcoming")
-              const isEditing = editingId === event.id
-
+              const status = statusStyle(event.status || "upcoming")
               return (
                 <article key={event.id} style={{ backgroundColor: colors.cardBg, borderRadius: "12px", overflow: "hidden", border: `1px solid ${colors.border}` }}>
-                  {!isEditing && <EventBanner event={event} />}
+                  <EventBanner event={event} />
 
                   <div style={{ padding: "20px" }}>
-                    {!isEditing ? (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
-                          <h3 style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.title}</h3>
-                          <span style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "999px", backgroundColor: status.bg, color: status.color, fontWeight: "700", textTransform: "uppercase", flexShrink: 0 }}>
-                            {eventStatusLabel(event.status)}
-                          </span>
-                        </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
+                      <h3 style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.title}</h3>
+                      <span style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "999px", backgroundColor: status.bg, color: status.color, fontWeight: "700", textTransform: "uppercase", flexShrink: 0 }}>
+                        {event.status || "upcoming"}
+                      </span>
+                    </div>
 
-                        <p style={{ color: colors.textMuted, fontSize: "14px", lineHeight: "1.6", margin: "0 0 16px", minHeight: "44px" }}>
-                          {event.description || "No description provided."}
-                        </p>
+                    <p style={{ color: colors.textMuted, fontSize: "14px", lineHeight: "1.6", margin: "0 0 16px", minHeight: "44px" }}>
+                      {event.description || "No description provided."}
+                    </p>
 
-                        <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
-                          <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Date:</strong> {formatDate(event.date_time)}</p>
-                          <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Location:</strong> {event.location || "No location"}</p>
-                        </div>
+                    <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
+                      <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Date:</strong> {formatDate(event.date_time)}</p>
+                      <p style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}><strong style={{ color: colors.textMain }}>Location:</strong> {event.location || "No location"}</p>
+                    </div>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "18px", borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}`, padding: "12px 0" }}>
-                          <div>
-                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reservations</p>
-                            <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{reservationRatio(event)}</p>
-                          </div>
-                          <div>
-                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reserved</p>
-                            <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.going_count || 0}</p>
-                          </div>
-                          <div>
-                            <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Available</p>
-                            <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.spots_left ?? availableSpots(event)}</p>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                          {event.status !== "cancelled" && (
-                            <>
-                              <button onClick={() => startEdit(event)} style={{ padding: "10px 14px", backgroundColor: "rgba(99,102,241,0.15)", color: colors.accent, border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
-                                Edit
-                              </button>
-                              <button onClick={() => setCancelEventTarget(event)} style={{ padding: "10px 14px", backgroundColor: "rgba(239,68,68,0.1)", color: colors.error, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
-                                Cancel
-                              </button>
-                            </>
-                          )}
-                          <button onClick={() => viewGuests(event)} style={{ padding: "10px 14px", backgroundColor: "rgba(16,185,129,0.15)", color: colors.green, border: "1px solid rgba(16,185,129,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>
-                            View Guests
-                          </button>
-                        </div>
-                      </>
-                    ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "18px", borderTop: `1px solid ${colors.border}`, borderBottom: `1px solid ${colors.border}`, padding: "12px 0" }}>
                       <div>
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600" }}>Title</label>
-                        <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} style={inputStyle} />
-
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Description</label>
-                        <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} style={{ ...inputStyle, height: "70px", resize: "vertical" }} />
-
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Location</label>
-                        <input value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} style={inputStyle} />
-
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Date & Time</label>
-                        <input type="datetime-local" value={editForm.date_time} onChange={e => setEditForm({ ...editForm, date_time: e.target.value })} style={inputStyle} />
-
-                        <label style={{ fontSize: "12px", color: colors.textMuted, fontWeight: "600", marginTop: "12px", display: "block" }}>Capacity *</label>
-                        <input type="number" min="1" step="1" value={editForm.capacity} onChange={e => setEditForm({ ...editForm, capacity: e.target.value })} style={inputStyle} />
-                        {editForm.capacity !== "" && Number(editForm.capacity) >= 1 && (
-                          <p style={{ color: colors.textMuted, fontSize: "12px", margin: "8px 0 0" }}>
-                            {event.going_count || 0}/{editForm.capacity} Reservations
-                          </p>
-                        )}
-
-                        <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-                          <button onClick={() => saveEdit(event)} style={{ flex: 1, padding: "10px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>
-                            Save Changes
-                          </button>
-                          <button onClick={() => setEditingId(null)} style={{ flex: 1, padding: "10px", backgroundColor: "transparent", color: colors.textMuted, border: `1px solid ${colors.border}`, borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>
-                            Cancel
-                          </button>
-                        </div>
+                        <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Capacity</p>
+                        <p style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.capacity ?? "Unlimited"}</p>
                       </div>
-                    )}
+                      <div>
+                        <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reserved</p>
+                        <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.going_count || 0}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Free</p>
+                        <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{event.spots_left ?? "Open"}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        onClick={() => handleArchive(event.id)}
+                        disabled={event.status === "past"}
+                        style={{ flex: 1, padding: "10px", backgroundColor: "rgba(245,158,11,0.1)", color: colors.warning, border: "1px solid rgba(245,158,11,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: event.status === "past" ? "not-allowed" : "pointer", opacity: event.status === "past" ? 0.6 : 1 }}
+                      >
+                        Archive
+                      </button>
+                      <button
+                        onClick={() => handleCancel(event.id)}
+                        disabled={event.status === "cancelled"}
+                        style={{ flex: 1, padding: "10px", backgroundColor: "rgba(239,68,68,0.1)", color: colors.error, border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: event.status === "cancelled" ? "not-allowed" : "pointer", opacity: event.status === "cancelled" ? 0.6 : 1 }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </article>
               )
@@ -415,62 +227,6 @@ export default function MyEvents() {
           </div>
         )}
       </div>
-
-      {guestModalEvent && (
-        <div
-          onClick={closeGuestModal}
-          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, maxWidth: "500px", width: "100%", maxHeight: "70vh", overflowY: "auto", padding: "28px" }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
-              <div>
-                <p style={{ color: colors.accent, fontSize: "11px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", margin: "0 0 6px" }}>GUEST LIST</p>
-                <h3 style={{ color: colors.textMain, fontSize: "20px", fontWeight: "800", margin: 0 }}>{guestModalEvent.title}</h3>
-              </div>
-              <button onClick={closeGuestModal} style={{ background: "none", border: "none", color: colors.textMuted, fontSize: "20px", cursor: "pointer" }}>x</button>
-            </div>
-
-            {loadingGuests ? (
-              <p style={{ color: colors.textMuted }}>Loading guests...</p>
-            ) : guests.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                <p style={{ color: colors.textMuted, fontSize: "14px" }}>No one has reserved yet.</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {guests.map((guest, index) => (
-                  <div key={guest.id || index} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", backgroundColor: colors.bgDark, borderRadius: "10px", border: `1px solid ${colors.border}` }}>
-                    <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: colors.accent + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: colors.accent, flexShrink: 0 }}>
-                      {guest.name ? guest.name.charAt(0).toUpperCase() : "G"}
-                    </div>
-                    <div>
-                      <p style={{ color: colors.textMain, fontSize: "14px", fontWeight: "600", margin: 0 }}>{guest.name}</p>
-                      <p style={{ color: colors.textMuted, fontSize: "12px", margin: 0 }}>{guest.email}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <p style={{ color: colors.textMuted, fontSize: "13px", textAlign: "center", marginTop: "20px", margin: "20px 0 0" }}>
-              {guests.length} {guests.length === 1 ? "person has" : "people have"} reserved
-            </p>
-          </div>
-        </div>
-      )}
-
-      <ConfirmModal
-        open={Boolean(cancelEventTarget)}
-        title="Cancel event?"
-        message={`Are you sure you want to cancel "${cancelEventTarget?.title}"? Active reservations will be released and attendees will be notified.`}
-        confirmLabel="Cancel Event"
-        tone="warning"
-        onCancel={() => setCancelEventTarget(null)}
-        onConfirm={confirmCancelEvent}
-      />
     </div>
   )
 }

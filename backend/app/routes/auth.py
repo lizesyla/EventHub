@@ -58,13 +58,9 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
         payload = verify_refresh_token(body.refresh_token)
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token.")
-
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if not user or user.refresh_token != body.refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token already used.")
-    if user.role != "admin" and not user.is_approved:
-        raise HTTPException(status_code=403, detail="Your account is deactivated.")
-
     tokens = generate_tokens(user.id, user.email, user.role)
     user.refresh_token = tokens["refresh_token"]
     db.commit()

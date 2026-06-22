@@ -25,7 +25,7 @@ def get_all_users(
         for u in users
     ]
 
-# APPROVE organizer
+# ACTIVATE user
 @router.patch("/users/{user_id}/approve")
 def approve_user(
     user_id: int,
@@ -56,52 +56,3 @@ def deactivate_user(
     user.is_approved = False
     db.commit()
     return {"message": f"{user.name} has been deactivated."}
-
-@router.get("/stats")
-def get_dashboard_stats(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
-):
-    from app.models.event import Event
-    from app.models.rsvp import RSVP
-
-    events = db.query(Event).all()
-
-    turnout = []
-    for event in events:
-        going_count = db.query(RSVP).filter(
-            RSVP.event_id == event.id,
-            RSVP.status == "going"
-        ).count()
-        turnout.append({
-            "title": event.title,
-            "going": going_count,
-            "capacity": event.capacity or 0
-        })
-
-    popular = sorted(turnout, key=lambda x: x["going"], reverse=True)[:5]
-
-    return {
-        "turnout": turnout,
-        "popular_events": popular
-    }
-@router.get("/rsvp-trends")
-def get_rsvp_trends(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
-):
-    from app.models.rsvp import RSVP
-    from sqlalchemy import func
-
-    results = db.query(
-        func.date(RSVP.created_at).label("date"),
-        func.count(RSVP.id).label("count")
-    ).filter(
-        RSVP.status == "going"
-    ).group_by(
-        func.date(RSVP.created_at)
-    ).order_by(
-        func.date(RSVP.created_at)
-    ).all()
-
-    return [{"date": str(r.date), "count": r.count} for r in results]

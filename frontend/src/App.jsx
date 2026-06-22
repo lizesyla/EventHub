@@ -1,15 +1,14 @@
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom"
-import { useState } from "react"
-import "./App.css"
-import Admin from "./pages/Admin"
-import CreateEvent from "./pages/CreateEvent"
-import Events from "./pages/Events"
-import Home from "./pages/Home"
-import Login from "./pages/Login"
-import MyEvents from "./pages/MyEvents"
-import NotificationBell from "./pages/NotificationBell"
-import Profile from "./pages/Profile"
-import Register from "./pages/Register"
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { useState } from 'react'
+import './App.css'
+import Profile from './pages/Profile'
+import CreateEvent from './pages/CreateEvent'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Home from './pages/Home'
+import Admin from './pages/Admin'
+import Events from './pages/Events'
+import MyEvents from './pages/MyEvents'
 
 function parseRole() {
   try {
@@ -92,7 +91,14 @@ function App() {
                 </>
               )}
 
-              {token && <NotificationBell />}
+            {token && !isAdmin && (
+              <>
+                <Link to="/events" style={linkStyle}>Events</Link>
+                <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
+                <Link to="/my-events" style={linkStyle}>My Events</Link>
+                <Link to="/profile" style={linkStyle}>My Profile</Link>
+              </>
+            )}
 
               {token ? (
                 <button onClick={handleLogout} style={{ padding: "7px 16px", backgroundColor: "transparent", color: "#ef4444", border: "1px solid #ef4444", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "600" }}>
@@ -113,11 +119,21 @@ function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/create-event" element={<ProtectedRoute><CreateEvent /></ProtectedRoute>} />
-            <Route path="/my-events" element={<ProtectedRoute><MyEvents /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<Navigate to="/admin" replace />} />
+            <Route path="/profile" element={
+              <ProtectedRoute><Profile /></ProtectedRoute>
+            } />
+            <Route path="/create-event" element={
+              <ProtectedRoute><CreateEvent /></ProtectedRoute>
+            } />
+            <Route path="/my-events" element={
+              <ProtectedRoute><MyEvents /></ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute><Admin defaultTab="events" /></ProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute><Admin defaultTab="users" /></ProtectedRoute>
+            } />
           </Routes>
         </main>
       </div>
