@@ -20,15 +20,12 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Email is already registered.")
 
-    # Organizer needs admin approval, others are auto-approved
-    is_approved = body.role != "organizer"
-
     user = User(
         name=body.name,
         email=body.email,
         password_hash=hash_password(body.password),
         role=body.role,
-        is_approved=is_approved,
+        is_approved=True,
     )
     db.add(user)
     db.commit()
@@ -40,10 +37,8 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == body.email).first()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials.")
-
-    # Block organizer if not approved
-    if user.role == "organizer" and not user.is_approved:
-        raise HTTPException(status_code=403, detail="Your organizer account is pending admin approval.")
+    if user.role != "admin" and not user.is_approved:
+        raise HTTPException(status_code=403, detail="Your account is deactivated.")
 
     tokens = generate_tokens(user.id, user.email, user.role)
     user.refresh_token = tokens["refresh_token"]

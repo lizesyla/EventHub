@@ -30,12 +30,10 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
-
-    # Block organizer if not approved by admin
-    if user.role == "organizer" and not user.is_approved:
+    if user.role != "admin" and not user.is_approved:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your organizer account is pending admin approval."
+            detail="Your account is deactivated.",
         )
 
     return user

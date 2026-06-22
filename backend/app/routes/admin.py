@@ -25,7 +25,7 @@ def get_all_users(
         for u in users
     ]
 
-# APPROVE organizer
+# ACTIVATE user
 @router.patch("/users/{user_id}/approve")
 def approve_user(
     user_id: int,
@@ -35,11 +35,11 @@ def approve_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    if user.role != "organizer":
-        raise HTTPException(status_code=400, detail="Only organizers need approval.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Cannot modify an admin.")
     user.is_approved = True
     db.commit()
-    return {"message": f"{user.name} has been approved as Organizer."}
+    return {"message": f"{user.name} has been activated."}
 
 # DEACTIVATE user
 @router.patch("/users/{user_id}/deactivate")
@@ -55,8 +55,4 @@ def deactivate_user(
         raise HTTPException(status_code=400, detail="Cannot deactivate an admin.")
     user.is_approved = False
     db.commit()
-<<<<<<< HEAD
     return {"message": f"{user.name} has been deactivated."}
-=======
-    return {"message": f"{user.name} has been deactivated."}
->>>>>>> Remove-Organizer
