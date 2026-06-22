@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { ArrowLeft, ArrowRight } from "lucide-react"
 
 const colors = {
   bgDark: "#0f172a",
@@ -106,13 +107,13 @@ export default function Login({ onLogin }) {
           onMouseEnter={e => e.currentTarget.style.color = colors.accent}
           onMouseLeave={e => e.currentTarget.style.color = colors.textMuted}
         >
-          ← Back to Home
+          <ArrowLeft size={15} /> Back to Home
         </Link>
 
         <div style={{ marginBottom: "32px" }}>
           <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 12px" }}>EVENTHUB</p>
           <h2 style={{ color: colors.textMain, fontSize: "26px", fontWeight: "800", margin: "0 0 8px", letterSpacing: "-0.5px" }}>Welcome back</h2>
-          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform · Genpact</p>
+          <p style={{ color: colors.textMuted, fontSize: "14px", margin: 0 }}>Internal Events Platform - Genpact</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -158,9 +159,9 @@ export default function Login({ onLogin }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            style={{ width: "100%", padding: "14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.75 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "all 0.2s" }}
+            style={{ width: "100%", padding: "14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.75 : 1, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "7px" }}
           >
-            {isSubmitting ? "Signing in..." : "Sign In →"}
+            {isSubmitting ? "Signing in..." : <>Sign In <ArrowRight size={15} /></>}
           </button>
         </form>
 

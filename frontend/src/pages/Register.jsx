@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { ArrowLeft, ArrowRight } from "lucide-react"
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
@@ -60,13 +61,13 @@ export default function Register() {
           onMouseEnter={e => e.currentTarget.style.color = colors.accent}
           onMouseLeave={e => e.currentTarget.style.color = colors.textMuted}
         >
-          ← Back to Sign In
+          <ArrowLeft size={15} /> Back to Sign In
         </Link>
 
         <div style={{ marginBottom: '32px' }}>
           <p style={{ color: colors.accent, fontSize: '12px', fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 12px' }}>EVENTHUB</p>
           <h2 style={{ color: colors.textMain, fontSize: '26px', fontWeight: '800', margin: '0 0 8px', letterSpacing: '-0.5px' }}>Create an account</h2>
-          <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>Internal Events Platform · Genpact</p>
+          <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>Internal Events Platform - Genpact</p>
         </div>
 
         <div style={{ marginBottom: "16px" }}>
@@ -107,8 +108,8 @@ export default function Register() {
 
         <button
           onClick={handleRegister}
-          style={{ width: '100%', padding: '14px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 20px rgba(99,102,241,0.4)' }}>
-          Create Account →
+          style={{ width: '100%', padding: '14px', backgroundColor: colors.accent, color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 20px rgba(99,102,241,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px' }}>
+          Create Account <ArrowRight size={15} />
         </button>
 
         <p style={{ textAlign: "center", marginTop: "20px", color: colors.textMuted, fontSize: "14px" }}>

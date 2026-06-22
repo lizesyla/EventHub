@@ -65,10 +65,6 @@ export default function Admin() {
   const token = localStorage.getItem("token")
   const headers = { Authorization: `Bearer ${token}` }
 
-  useEffect(() => {
-    fetchAll()
-  }, [token])
-
   function fetchAll() {
     fetch("http://localhost:8000/api/events", { headers })
       .then(r => r.json())
@@ -98,6 +94,12 @@ export default function Admin() {
       .then(data => setTrends(Array.isArray(data) ? data : []))
       .catch(() => setTrends([]))
   }
+
+  useEffect(() => {
+    fetchAll()
+    // fetchAll reads the current token-derived headers for this session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   function showMessage(text) {
     setMessage(text)
@@ -212,7 +214,7 @@ export default function Admin() {
     const doc = new jsPDF()
 
     doc.setFontSize(18)
-    doc.text("EventHub — Admin Report", 14, 18)
+    doc.text("EventHub - Admin Report", 14, 18)
     doc.setFontSize(11)
     doc.setTextColor(120)
     doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 25)
@@ -224,7 +226,7 @@ export default function Admin() {
     autoTable(doc, {
       startY: 42,
       head: [["Event", "Reservations", "Capacity"]],
-      body: stats.turnout.map(e => [e.title, e.going, e.capacity || "—"]),
+      body: stats.turnout.map(e => [e.title, e.going, e.capacity || "-"]),
       theme: "striped",
       headStyles: { fillColor: [236, 72, 153] },
     })
@@ -236,7 +238,7 @@ export default function Admin() {
     autoTable(doc, {
       startY: afterTurnoutY + 4,
       head: [["Rank", "Event", "Reservations", "Capacity"]],
-      body: stats.popular_events.map((e, i) => [i + 1, e.title, e.going, e.capacity || "—"]),
+      body: stats.popular_events.map((e, i) => [i + 1, e.title, e.going, e.capacity || "-"]),
       theme: "striped",
       headStyles: { fillColor: [168, 85, 247] },
     })
@@ -270,6 +272,18 @@ export default function Admin() {
           confirmLabel: "Cancel Event",
           tone: "warning",
         },
+        "approve-event": {
+          title: "Approve event?",
+          message: `Are you sure you want to approve "${confirmAction.event?.title}"?`,
+          confirmLabel: "Approve",
+          tone: "success",
+        },
+        "reject-event": {
+          title: "Reject event?",
+          message: `Are you sure you want to reject "${confirmAction.event?.title}"? This will move it to history.`,
+          confirmLabel: "Reject",
+          tone: "danger",
+        },
         "deactivate-user": {
           title: "Deactivate user?",
           message: `Are you sure you want to deactivate "${confirmAction.user?.name}"?`,
@@ -288,6 +302,14 @@ export default function Admin() {
 
     if (confirmAction.type === "cancel-event") {
       await cancelEvent(confirmAction.event.id)
+    }
+
+    if (confirmAction.type === "approve-event") {
+      await approveEvent(confirmAction.event.id)
+    }
+
+    if (confirmAction.type === "reject-event") {
+      await rejectEvent(confirmAction.event.id)
     }
 
     if (confirmAction.type === "deactivate-user") {
@@ -518,8 +540,8 @@ export default function Admin() {
               events={events}
               colors={colors}
               eventStatusInfo={eventStatusInfo}
-              onApprove={approveEvent}
-              onReject={rejectEvent}
+              onApproveRequest={event => setConfirmAction({ type: "approve-event", event })}
+              onRejectRequest={event => setConfirmAction({ type: "reject-event", event })}
               onCancel={event => setConfirmAction({ type: "cancel-event", event })}
               onDelete={(event, fromHistory = false) => setConfirmAction({ type: "delete-event", event, fromHistory })}
             />
@@ -635,7 +657,7 @@ export default function Admin() {
   )
 }
 
-function EventsTable({ events, colors, eventStatusInfo, onApprove, onReject, onCancel, onDelete, history = false }) {
+function EventsTable({ events, colors, eventStatusInfo, onApproveRequest, onRejectRequest, onCancel, onDelete, history = false }) {
   return (
     <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -657,7 +679,7 @@ function EventsTable({ events, colors, eventStatusInfo, onApprove, onReject, onC
                 <td style={{ padding: "16px", color: colors.textMain, fontSize: "14px", fontWeight: "600" }}>{event.title}</td>
                 <td style={{ padding: "16px", color: colors.textMuted, fontSize: "14px" }}>{event.location}</td>
                 <td style={{ padding: "16px", color: colors.textMuted, fontSize: "14px" }}>
-                  {event.date_time ? new Date(event.date_time).toLocaleDateString("en-US") : "—"}
+                  {event.date_time ? new Date(event.date_time).toLocaleDateString("en-US") : "-"}
                 </td>
 
                 <td style={{ padding: "16px" }}>
@@ -668,7 +690,7 @@ function EventsTable({ events, colors, eventStatusInfo, onApprove, onReject, onC
 
                   {event.status === "pending" && event.pending_reason && (
                     <div style={{ fontSize: "11px", color: colors.textMuted, marginTop: "4px" }}>
-                      {event.pending_reason === "edited" ? "Edited — re-approval needed" : "New submission"}
+                      {event.pending_reason === "edited" ? "Edited - re-approval needed" : "New submission"}
                     </div>
                   )}
                 </td>
@@ -677,11 +699,11 @@ function EventsTable({ events, colors, eventStatusInfo, onApprove, onReject, onC
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {!history && event.status === "pending" && (
                       <>
-                        <button onClick={() => onApprove(event.id)} style={{ padding: "6px 12px", backgroundColor: "rgba(16,185,129,0.15)", color: colors.green, border: "1px solid rgba(16,185,129,0.3)", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                        <button onClick={() => onApproveRequest(event)} style={{ padding: "6px 12px", backgroundColor: "rgba(16,185,129,0.15)", color: colors.green, border: "1px solid rgba(16,185,129,0.3)", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
                           Approve
                         </button>
 
-                        <button onClick={() => onReject(event.id)} style={{ padding: "6px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                        <button onClick={() => onRejectRequest(event)} style={{ padding: "6px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
                           Reject
                         </button>
                       </>

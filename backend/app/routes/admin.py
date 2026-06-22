@@ -1,10 +1,59 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.models.event import Event
+from app.models.rsvp import RSVP
 from app.models.user import User
 from app.middleware.auth import require_role
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+
+def going_count(db: Session, event_id: int) -> int:
+    return db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.status == "going",
+    ).count()
+
+
+@router.get("/stats")
+def get_admin_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    events = db.query(Event).order_by(Event.date_time.asc()).all()
+    turnout = [
+        {
+            "id": event.id,
+            "title": event.title,
+            "going": going_count(db, event.id),
+            "capacity": event.capacity,
+        }
+        for event in events
+    ]
+
+    popular_events = sorted(turnout, key=lambda event: event["going"], reverse=True)[:5]
+    return {"turnout": turnout, "popular_events": popular_events}
+
+
+@router.get("/rsvp-trends")
+def get_reservation_trends(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    rows = db.query(
+        func.date(RSVP.created_at).label("date"),
+        func.count(RSVP.id).label("count"),
+    ).filter(
+        RSVP.status == "going",
+    ).group_by(
+        func.date(RSVP.created_at),
+    ).order_by(
+        func.date(RSVP.created_at),
+    ).all()
+
+    return [{"date": str(row.date), "count": row.count} for row in rows]
 
 # GET all users
 @router.get("/users")

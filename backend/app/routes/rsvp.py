@@ -1,6 +1,8 @@
 from datetime import datetime
+import threading
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -12,9 +14,19 @@ from app.models.notification import Notification
 from app.models.rsvp import RSVP
 from app.models.user import User
 
-router = APIRouter(prefix="/api/events", tags=["RSVP"])
+router = APIRouter(prefix="/api/events", tags=["Reservations"])
 
 RSVP_MILESTONES = {1, 5, 10, 25, 50, 100, 250, 500}
+
+_reservation_locks: dict[int, threading.Lock] = {}
+_reservation_locks_guard = threading.Lock()
+
+
+def get_reservation_lock(event_id: int) -> threading.Lock:
+    with _reservation_locks_guard:
+        if event_id not in _reservation_locks:
+            _reservation_locks[event_id] = threading.Lock()
+        return _reservation_locks[event_id]
 
 
 def get_going_count(db: Session, event_id: int) -> int:
@@ -34,6 +46,17 @@ def rsvp_count_payload(event: Event, going_count: int) -> dict:
     }
 
 
+def fully_booked_response(event: Event, going_count: int) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": "This event is fully booked.",
+            "reservation_confirmed": False,
+            **rsvp_count_payload(event, going_count),
+        },
+    )
+
+
 @router.post("/{event_id}/rsvp")
 def create_rsvp(
     event_id: int,
@@ -43,63 +66,70 @@ def create_rsvp(
     if current_user.role != "attendee":
         raise HTTPException(status_code=403, detail="Only attendees can reserve a spot.")
 
-    event = db.execute(
-        select(Event).where(Event.id == event_id).with_for_update()
-    ).scalar_one_or_none()
+    with get_reservation_lock(event_id):
+        event = db.execute(
+            select(Event).where(Event.id == event_id).with_for_update()
+        ).scalar_one_or_none()
 
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
-    if event.organizer_id == current_user.id:
-        raise HTTPException(status_code=400, detail="You cannot reserve a spot for your own event.")
-    if event.status != "upcoming":
-        raise HTTPException(status_code=400, detail="Reservations are only allowed for upcoming events.")
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found.")
+        if event.organizer_id == current_user.id:
+            raise HTTPException(status_code=400, detail="You cannot reserve a spot for your own event.")
+        if event.status != "upcoming":
+            raise HTTPException(status_code=400, detail="Reservations are only allowed for upcoming events.")
 
-    existing_rsvp = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.user_id == current_user.id,
-    ).first()
+        existing_rsvp = db.query(RSVP).filter(
+            RSVP.event_id == event_id,
+            RSVP.user_id == current_user.id,
+        ).first()
 
-    if existing_rsvp and existing_rsvp.status == "going":
-        raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
+        if existing_rsvp and existing_rsvp.status == "going":
+            raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
 
-    current_count = get_going_count(db, event_id)
-    if event.capacity is not None and current_count >= event.capacity:
-        raise HTTPException(status_code=400, detail="This event is full.")
+        current_count = get_going_count(db, event_id)
+        if event.capacity is not None and current_count >= event.capacity:
+            return fully_booked_response(event, current_count)
 
-    try:
-        if existing_rsvp:
-            existing_rsvp.status = "going"
-            existing_rsvp.cancelled_at = None
-            rsvp = existing_rsvp
-        else:
-            rsvp = RSVP(
-                event_id=event_id,
-                user_id=current_user.id,
-                status="going",
-            )
-            db.add(rsvp)
+        try:
+            if existing_rsvp:
+                existing_rsvp.status = "going"
+                existing_rsvp.cancelled_at = None
+                rsvp = existing_rsvp
+            else:
+                rsvp = RSVP(
+                    event_id=event_id,
+                    user_id=current_user.id,
+                    status="going",
+                )
+                db.add(rsvp)
 
-        new_count = current_count + 1
-        if new_count in RSVP_MILESTONES:
-            db.add(Notification(
-                user_id=event.organizer_id,
-                message=f"Your event '{event.title}' has reached {new_count} reservations.",
-                type="new_rsvp",
-            ))
+            db.flush()
+            new_count = get_going_count(db, event_id)
+            if event.capacity is not None and new_count > event.capacity:
+                db.rollback()
+                return fully_booked_response(event, current_count)
 
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
+            if new_count in RSVP_MILESTONES:
+                db.add(Notification(
+                    user_id=event.organizer_id,
+                    message=f"Your event '{event.title}' has reached {new_count} reservations.",
+                    type="new_rsvp",
+                ))
 
-    db.refresh(rsvp)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
 
-    return {
-        "message": "Reservation confirmed successfully.",
-        "user_id": current_user.id,
-        "rsvp": rsvp,
-        **rsvp_count_payload(event, new_count),
-    }
+        db.refresh(rsvp)
+
+        return {
+            "message": "Reservation confirmed successfully.",
+            "reservation_confirmed": True,
+            "user_id": current_user.id,
+            "rsvp": rsvp,
+            **rsvp_count_payload(event, new_count),
+        }
 
 
 @router.delete("/{event_id}/rsvp")
@@ -108,32 +138,33 @@ def cancel_rsvp(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    rsvp = db.query(RSVP).filter(
-        RSVP.event_id == event_id,
-        RSVP.user_id == current_user.id,
-        RSVP.status == "going",
-    ).first()
+    with get_reservation_lock(event_id):
+        rsvp = db.query(RSVP).filter(
+            RSVP.event_id == event_id,
+            RSVP.user_id == current_user.id,
+            RSVP.status == "going",
+        ).first()
 
-    if not rsvp:
-        raise HTTPException(status_code=404, detail="No active reservation found for this event.")
+        if not rsvp:
+            raise HTTPException(status_code=404, detail="No active reservation found for this event.")
 
-    rsvp.status = "cancelled"
-    rsvp.cancelled_at = datetime.utcnow()
+        rsvp.status = "cancelled"
+        rsvp.cancelled_at = datetime.utcnow()
 
-    db.commit()
-    db.refresh(rsvp)
+        db.commit()
+        db.refresh(rsvp)
 
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
+        event = db.query(Event).filter(Event.id == event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found.")
 
-    going_count = get_going_count(db, event_id)
+        going_count = get_going_count(db, event_id)
 
-    return {
-        "message": "Reservation cancelled successfully.",
-        "rsvp": rsvp,
-        **rsvp_count_payload(event, going_count),
-    }
+        return {
+            "message": "Reservation cancelled successfully.",
+            "rsvp": rsvp,
+            **rsvp_count_payload(event, going_count),
+        }
 
 
 @router.get("/{event_id}/rsvp-count")

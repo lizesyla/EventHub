@@ -46,7 +46,9 @@ function CreateEvent() {
     if (!title.trim() || title.trim().length < 3) localErrors.title = "Title must be at least 3 characters."
     if (!date) localErrors.date = "Date is required."
     if (!location.trim()) localErrors.location = "Location is required."
-    if (capacity && (!Number.isInteger(capacityNumber) || capacityNumber < 1)) {
+    if (!capacity) {
+      localErrors.capacity = "Capacity is required."
+    } else if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
       localErrors.capacity = "Capacity must be a whole number of at least 1."
     }
     if (banner && !banner.type.startsWith('image/')) localErrors.banner = "Only image files are allowed."
@@ -71,7 +73,7 @@ function CreateEvent() {
     formData.append('description', description)
     formData.append('date_time', date)
     formData.append('location', location.trim())
-    if (capacity) formData.append('capacity', capacity)
+    formData.append('capacity', capacity)
     if (banner) formData.append('banner', banner)
 
     try {
@@ -99,7 +101,6 @@ function CreateEvent() {
         setBanner(null)
         setErrors({})
 
-        alert(reviewStatus === "pending" ? "Event sent for approval!" : "Event created successfully!")
         setTimeout(() => {
           navigate('/my-events')
         }, 1500)
@@ -137,19 +138,13 @@ function CreateEvent() {
           <p style={{ color: colors.textMuted, fontSize: '14px', margin: 0 }}>Fill in the details below to send your event for review.</p>
         </div>
 
-        {success && (
-          <div style={{ padding: '14px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: colors.green, fontSize: '14px', fontWeight: '600', marginBottom: '24px' }}>
-            {success} Redirecting to My Events...
-          </div>
-        )}
-
         <p style={{ color: colors.textMuted, fontSize: "14px", marginBottom: "24px" }}>
           Submitted events stay pending until an admin approves them.
         </p>
 
         {success && (
           <div style={{ padding: "14px 16px", backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "10px", color: colors.green, fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
-            {success} Redirecting to My Events...
+            {success} {statusNote} Redirecting to My Events...
           </div>
         )}
 
@@ -178,9 +173,19 @@ function CreateEvent() {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Capacity <span style={{ color: colors.textMuted, fontWeight: '400' }}>(optional)</span></label>
-            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. 50" style={inputStyle} min="1" step="1" />
+            <label style={{ fontSize: '13px', fontWeight: '600', color: colors.textMuted }}>Capacity *</label>
+            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. 50" style={inputStyle} min="1" step="1" required />
             {errors.capacity && <span style={{ color: colors.error, fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.capacity}</span>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginTop: "10px" }}>
+              <div style={{ padding: "10px", border: `1px solid ${colors.border}`, borderRadius: "8px", backgroundColor: colors.inputBg }}>
+                <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Reservations</p>
+                <p style={{ color: colors.accent, fontSize: "18px", fontWeight: "800", margin: 0 }}>0/{Number(capacity) || 0}</p>
+              </div>
+              <div style={{ padding: "10px", border: `1px solid ${colors.border}`, borderRadius: "8px", backgroundColor: colors.inputBg }}>
+                <p style={{ color: colors.textMuted, fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase" }}>Available</p>
+                <p style={{ color: colors.green, fontSize: "18px", fontWeight: "800", margin: 0 }}>{Number(capacity) || 0}</p>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginBottom: '32px' }}>
@@ -207,7 +212,7 @@ function CreateEvent() {
               fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 20px rgba(99,102,241,0.4)'
             }}>
-              {loading ? 'Publishing...' : 'Publish Event'}
+              {loading ? 'Submitting...' : 'Submit Event'}
             </button>
           </div>
         </form>
