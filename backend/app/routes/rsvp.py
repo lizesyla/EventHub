@@ -13,6 +13,7 @@ from app.models.event import Event
 from app.models.notification import Notification
 from app.models.rsvp import RSVP
 from app.models.user import User
+from app.utils.email import send_email
 
 router = APIRouter(prefix="/api/events", tags=["Reservations"])
 
@@ -104,6 +105,7 @@ def create_rsvp(
                 db.add(rsvp)
 
             db.flush()
+
             new_count = get_going_count(db, event_id)
             if event.capacity is not None and new_count > event.capacity:
                 db.rollback()
@@ -117,6 +119,22 @@ def create_rsvp(
                 ))
 
             db.commit()
+
+            send_email(
+                current_user.email,
+                "EventHub RSVP Confirmation",
+                f"""Hello {current_user.name},
+
+Your RSVP has been confirmed successfully.
+
+Event: {event.title}
+Date: {event.date_time}
+Location: {event.location}
+
+Thank you,
+EventHub Team"""
+            )
+
         except IntegrityError:
             db.rollback()
             raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
@@ -157,6 +175,21 @@ def cancel_rsvp(
         event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")
+
+        send_email(
+            current_user.email,
+            "EventHub RSVP Cancelled",
+            f"""Hello {current_user.name},
+
+Your RSVP has been cancelled successfully.
+
+Event: {event.title}
+Date: {event.date_time}
+Location: {event.location}
+
+Thank you,
+EventHub Team"""
+        )
 
         going_count = get_going_count(db, event_id)
 
