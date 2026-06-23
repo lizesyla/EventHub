@@ -85,6 +85,7 @@ export default function Events() {
   const [reservationLoading, setReservationLoading] = useState(null)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [waitlistMsg, setWaitlistMsg] = useState({ id: null, position: null })
   const token = localStorage.getItem("token")
   const role = parseRole()
 
@@ -98,6 +99,23 @@ export default function Events() {
       })
       .catch(() => setLoading(false))
   }, [token])
+
+  useEffect(() => {
+  if (!token || events.length === 0) return
+  events.forEach(async (event) => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/events/${event.id}/waitlist-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.on_waitlist) {
+        setWaitlistMsg(prev => 
+          prev.id === event.id ? prev : { id: event.id, position: data.waitlist_position }
+        )
+      }
+    } catch {}
+  })
+}, [events, token])
 
   function showMessage(eventId, msg, type = "success") {
     setReservationMsg({ id: eventId, msg, type })
@@ -124,26 +142,31 @@ export default function Events() {
       const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
-        patchEvent(eventId, event => {
-          const fallbackCount = alreadyReserved
-            ? Math.max((Number(event.going_count) || 0) - 1, 0)
-            : (Number(event.going_count) || 0) + 1
-          const newGoingCount = Number.isFinite(Number(data.spots_taken))
-            ? Number(data.spots_taken)
-            : fallbackCount
-          const newCapacity = data.capacity ?? event.capacity
-          const newSpotsLeft = data.spots_left ?? Math.max((Number(newCapacity) || 0) - newGoingCount, 0)
+        if (data.waitlist) {
+          setWaitlistMsg({ id: eventId, position: data.waitlist_position })
+          showMessage(eventId, `Added to waitlist — position #${data.waitlist_position}`, "warn")
+        } else {
+          patchEvent(eventId, event => {
+            const fallbackCount = alreadyReserved
+              ? Math.max((Number(event.going_count) || 0) - 1, 0)
+              : (Number(event.going_count) || 0) + 1
+            const newGoingCount = Number.isFinite(Number(data.spots_taken))
+              ? Number(data.spots_taken)
+              : fallbackCount
+            const newCapacity = data.capacity ?? event.capacity
+            const newSpotsLeft = data.spots_left ?? Math.max((Number(newCapacity) || 0) - newGoingCount, 0)
 
-          return {
-            ...event,
-            going_count: newGoingCount,
-            capacity: newCapacity,
-            spots_left: newSpotsLeft,
-            is_full: newCapacity != null ? newGoingCount >= Number(newCapacity) : false,
-            user_has_rsvped: !alreadyReserved,
-          }
-        })
-        showMessage(eventId, alreadyReserved ? "Reservation cancelled." : "Reservation confirmed.")
+            return {
+              ...event,
+              going_count: newGoingCount,
+              capacity: newCapacity,
+              spots_left: newSpotsLeft,
+              is_full: newCapacity != null ? newGoingCount >= Number(newCapacity) : false,
+              user_has_rsvped: !alreadyReserved,
+            }
+          })
+          showMessage(eventId, alreadyReserved ? "Reservation cancelled." : "Reservation confirmed.")
+        }
       } else {
         patchEvent(eventId, event => applyReservationCount(event, data))
         showMessage(eventId, data.detail || "Could not complete this reservation.", "warn")
@@ -151,52 +174,122 @@ export default function Events() {
     } catch {
       showMessage(eventId, "Could not connect to the server.", "warn")
     } finally {
-      setReservationLoading(null)
-      setCancelTarget(null)
+        setReservationLoading(null)
+        setCancelTarget(null)
+        const headers = token ? { Authorization: `Bearer ${token}` } : {}
+        fetch("http://localhost:8000/api/events", { headers })
+          .then(res => res.json())
+          .then(data => setEvents(Array.isArray(data) ? data : []))
+          .catch(() => {})
     }
   }
 
+  async function handleWaitlist(eventId) {
+    if (!token) {
+      showMessage(eventId, "Please sign in to join the waitlist.", "warn")
+      return
+    }
+    setReservationLoading(eventId)
+    try {
+      const res = await fetch(`http://localhost:8000/api/events/${eventId}/rsvp`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.waitlist) {
+        setWaitlistMsg({ id: eventId, position: data.waitlist_position })
+        showMessage(eventId, `Added to waitlist — position #${data.waitlist_position}`, "warn")
+      } else {
+        showMessage(eventId, data.detail || "Could not join waitlist.", "warn")
+      }
+    } catch {
+      showMessage(eventId, "Could not connect to the server.", "warn")
+    } finally {
+      setReservationLoading(null)
+    }
+  }
+
+  async function handleLeaveWaitlist(eventId) {
+  setReservationLoading(eventId)
+  try {
+    const res = await fetch(`http://localhost:8000/api/events/${eventId}/waitlist/leave`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok) {
+      setWaitlistMsg({ id: null, position: null })
+      showMessage(eventId, "You have left the waitlist.", "success")
+    } else {
+      showMessage(eventId, data.detail || "Could not leave waitlist.", "warn")
+    }
+  } catch {
+    showMessage(eventId, "Could not connect to the server.", "warn")
+  } finally {
+    setReservationLoading(null)
+  }
+}
+
   function renderReservationButton(event, compact = false) {
     const fullyBooked = event.capacity != null && event.is_full && !event.user_has_rsvped
-    const disabled = event.status === "cancelled" || reservationLoading === event.id || fullyBooked
+    const onWaitlist = waitlistMsg.id === event.id
+    const disabled = event.status === "cancelled" || reservationLoading === event.id
+
     const label = reservationLoading === event.id
       ? "Processing..."
       : event.status === "cancelled"
         ? "Event Cancelled"
         : event.user_has_rsvped
           ? "Cancel Reservation"
-          : fullyBooked
-            ? "Fully Booked"
-            : token ? "Reserve Spot" : "Sign in to Reserve"
+          : onWaitlist
+            ? `Leave Waitlist  #${waitlistMsg.position}`
+            : fullyBooked
+              ? "Join Waitlist"
+              : token ? "Reserve Spot" : "Sign in to Reserve"
+
+    const bgColor = disabled
+      ? "rgba(148,163,184,0.1)"
+      : event.user_has_rsvped
+        ? "transparent"
+        : onWaitlist || fullyBooked
+          ? "rgba(245,158,11,0.1)"
+          : token ? colors.accent : "transparent"
+
+    const textColor = disabled
+      ? colors.textMuted
+      : event.user_has_rsvped
+        ? colors.error
+        : onWaitlist || fullyBooked
+          ? colors.warning
+          : token ? "#fff" : colors.accent
 
     return (
       <button
         type="button"
-        onClick={() => event.user_has_rsvped ? setCancelTarget(event) : handleReservation(event.id, false)}
+        onClick={() => {
+          if (event.user_has_rsvped) setCancelTarget(event)
+          else if (onWaitlist) handleLeaveWaitlist(event.id)
+          else if (fullyBooked) handleWaitlist(event.id)
+          else handleReservation(event.id, false)
+        }}
         disabled={disabled}
         style={{
           width: compact ? "auto" : "100%",
           padding: compact ? "11px 16px" : "12px",
-          backgroundColor: disabled
-            ? "rgba(148,163,184,0.1)"
-            : event.user_has_rsvped
-              ? "transparent"
-              : token ? colors.accent : "transparent",
-          color: disabled
-            ? colors.textMuted
-            : event.user_has_rsvped
-              ? colors.error
-              : token ? "#fff" : colors.accent,
+          backgroundColor: bgColor,
+          color: textColor,
           border: event.user_has_rsvped
             ? `1px solid ${colors.error}`
-            : disabled
-              ? `1px solid ${colors.border}`
-              : token ? "none" : `1px solid ${colors.accent}`,
+            : onWaitlist || fullyBooked
+              ? `1px solid rgba(245,158,11,0.4)`
+              : disabled
+                ? `1px solid ${colors.border}`
+                : token ? "none" : `1px solid ${colors.accent}`,
           borderRadius: "10px",
           fontSize: "14px",
           fontWeight: "700",
-          cursor: disabled ? "not-allowed" : "pointer",
-          boxShadow: token && !disabled && !event.user_has_rsvped ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
+          cursor: disabled || onWaitlist ? "not-allowed" : "pointer",
+          boxShadow: token && !disabled && !event.user_has_rsvped && !fullyBooked ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
         }}
       >
         {label}

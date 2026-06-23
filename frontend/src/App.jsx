@@ -9,6 +9,7 @@ import Home from './pages/Home'
 import Admin from './pages/Admin'
 import Events from './pages/Events'
 import MyEvents from './pages/MyEvents'
+import NotificationBell from './pages/NotificationBell'
 
 function parseRole() {
   try {
@@ -61,7 +62,6 @@ function App() {
   return (
     <BrowserRouter>
       <div style={{ backgroundColor: "#0f0c1b", minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
-        {/* Header is hidden for admins because Admin has its own sidebar. */}
         {!isAdmin && (
           <header style={{
             backgroundColor: "#1a162e",
@@ -88,6 +88,7 @@ function App() {
                   <Link to="/create-event" style={activeLinkStyle}>Create Event</Link>
                   <Link to="/my-events" style={linkStyle}>My Events</Link>
                   <Link to="/profile" style={linkStyle}>My Profile</Link>
+                  <NotificationBell />
                 </>
               )}
 

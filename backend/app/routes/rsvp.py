@@ -13,7 +13,7 @@ from app.models.event import Event
 from app.models.notification import Notification
 from app.models.rsvp import RSVP
 from app.models.user import User
-from app.utils.email import send_email
+from app.models.waitlist import Waitlist
 
 router = APIRouter(prefix="/api/events", tags=["Reservations"])
 
@@ -89,7 +89,35 @@ def create_rsvp(
 
         current_count = get_going_count(db, event_id)
         if event.capacity is not None and current_count >= event.capacity:
-            return fully_booked_response(event, current_count)
+            existing_waitlist = db.query(Waitlist).filter(
+                Waitlist.event_id == event_id,
+                Waitlist.user_id == current_user.id,
+            ).first()
+
+            if existing_waitlist:
+                raise HTTPException(status_code=409, detail="You are already on the waitlist for this event.")
+
+            waitlist_entry = Waitlist(
+                event_id=event_id,
+                user_id=current_user.id,
+            )
+            db.add(waitlist_entry)
+            db.commit()
+
+            waitlist_position = db.query(Waitlist).filter(
+                Waitlist.event_id == event_id,
+                Waitlist.joined_at <= waitlist_entry.joined_at,
+            ).count()
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "detail": "This event is fully booked. You have been added to the waitlist.",
+                    "waitlist": True,
+                    "waitlist_position": waitlist_position,
+                    **rsvp_count_payload(event, current_count),
+                },
+            )
 
         try:
             if existing_rsvp:
@@ -176,20 +204,34 @@ def cancel_rsvp(
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")
 
-        send_email(
-            current_user.email,
-            "EventHub RSVP Cancelled",
-            f"""Hello {current_user.name},
+        next_in_waitlist = db.query(Waitlist).filter(
+            Waitlist.event_id == event_id,
+        ).order_by(Waitlist.joined_at.asc()).first()
 
-Your RSVP has been cancelled successfully.
+        if next_in_waitlist:
+            existing_rsvp = db.query(RSVP).filter(
+                RSVP.event_id == event_id,
+                RSVP.user_id == next_in_waitlist.user_id,
+            ).first()
 
-Event: {event.title}
-Date: {event.date_time}
-Location: {event.location}
+            if existing_rsvp:
+                existing_rsvp.status = "going"
+                existing_rsvp.cancelled_at = None
+            else:
+                promoted_rsvp = RSVP(
+                    event_id=event_id,
+                    user_id=next_in_waitlist.user_id,
+                    status="going",
+                )
+                db.add(promoted_rsvp)
 
-Thank you,
-EventHub Team"""
-        )
+            db.add(Notification(
+                user_id=next_in_waitlist.user_id,
+                message=f"A spot opened up! You have been added to '{event.title}'.",
+                type="waitlist_promoted",
+            ))
+            db.delete(next_in_waitlist)
+            db.commit()
 
         going_count = get_going_count(db, event_id)
 
@@ -262,3 +304,46 @@ def get_guest_list(
         "total_guests": len(guests),
         "guests": guests,
     }
+
+
+@router.get("/{event_id}/waitlist-status")
+def get_waitlist_status(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    entry = db.query(Waitlist).filter(
+        Waitlist.event_id == event_id,
+        Waitlist.user_id == current_user.id,
+    ).first()
+
+    if not entry:
+        return {"on_waitlist": False, "waitlist_position": None}
+
+    position = db.query(Waitlist).filter(
+        Waitlist.event_id == event_id,
+        Waitlist.joined_at <= entry.joined_at,
+    ).count()
+
+    return {"on_waitlist": True, "waitlist_position": position}
+
+
+@router.delete("/{event_id}/waitlist/leave")
+def leave_waitlist(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    entry = db.query(Waitlist).filter(
+        Waitlist.event_id == event_id,
+        Waitlist.user_id == current_user.id,
+    ).first()
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="You are not on the waitlist for this event.")
+
+    db.delete(entry)
+    db.commit()
+
+    return {"message": "You have been removed from the waitlist."}
+    
