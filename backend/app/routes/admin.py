@@ -105,3 +105,20 @@ def deactivate_user(
     user.is_approved = False
     db.commit()
     return {"message": f"{user.name} has been deactivated."}
+
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Cannot delete an admin.")
+
+    db.delete(user)
+    db.commit()
+    return {"message": f"{user.name} has been deleted."}

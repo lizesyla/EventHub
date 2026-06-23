@@ -14,7 +14,7 @@ import {
   UserCheck,
   UserX,
 } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import NotificationBell from "./NotificationBell"
@@ -44,6 +44,38 @@ const lightColors = {
   border: "#f3e8f5",
   error: "#ef4444",
   green: "#10b981",
+}
+
+function ProgressCircle({ value, max, label, color, colors, percent: percentOverride }) {
+  const percent = percentOverride !== undefined
+    ? Math.min(percentOverride, 100)
+    : (max > 0 ? Math.min((value / max) * 100, 100) : 0)
+  const radius = 36
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (percent / 100) * circumference
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+      <div style={{ position: "relative", width: "88px", height: "88px" }}>
+        <svg width="88" height="88" viewBox="0 0 88 88">
+          <circle cx="44" cy="44" r={radius} fill="none" stroke={colors.border} strokeWidth="7" />
+          <circle
+            cx="44" cy="44" r={radius} fill="none"
+            stroke={color} strokeWidth="7"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform="rotate(-90 44 44)"
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: colors.textMain, fontSize: "16px", fontWeight: "800" }}>{value}</span>
+        </div>
+      </div>
+      <p style={{ color: colors.textMuted, fontSize: "12px", margin: 0, textAlign: "center" }}>{label}</p>
+    </div>
+  )
 }
 
 export default function Admin() {
@@ -97,7 +129,6 @@ export default function Admin() {
 
   useEffect(() => {
     fetchAll()
-    // fetchAll reads the current token-derived headers for this session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -190,6 +221,18 @@ export default function Admin() {
     }
   }
 
+  async function deleteUser(userId) {
+    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}`, {
+      method: "DELETE",
+      headers,
+    })
+
+    if (res.ok) {
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      showMessage("User deleted successfully.")
+    }
+  }
+
   function eventStatusInfo(status) {
     if (status === "pending") {
       return { label: "Pending", color: "#f59e0b", bg: "rgba(245,158,11,0.15)", Icon: Clock }
@@ -243,6 +286,18 @@ export default function Admin() {
       headStyles: { fillColor: [168, 85, 247] },
     })
 
+    const afterPopularY = doc.lastAutoTable.finalY + 12
+    doc.setFontSize(13)
+    doc.text("Reservation Trends Over Time", 14, afterPopularY)
+
+    autoTable(doc, {
+      startY: afterPopularY + 4,
+      head: [["Date", "Reservations"]],
+      body: trends.map(t => [t.date, t.count]),
+      theme: "striped",
+      headStyles: { fillColor: [236, 72, 153] },
+    })
+
     doc.save(`eventhub-report-${new Date().toISOString().slice(0, 10)}.pdf`)
   }
 
@@ -250,6 +305,7 @@ export default function Admin() {
   const totalGoing = stats.turnout.reduce((sum, e) => sum + (Number(e.going) || 0), 0)
   const totalCapacity = stats.turnout.reduce((sum, e) => sum + (Number(e.capacity) || 0), 0)
   const pendingReviewCount = events.filter(e => e.status === "pending").length
+  const fullyBookedCount = stats.turnout.filter(e => Number(e.capacity) > 0 && Number(e.going) >= Number(e.capacity)).length
 
   const pageInfo = {
     dashboard: { title: "Dashboard", subtitle: "Overview of platform activity" },
@@ -290,6 +346,12 @@ export default function Admin() {
           confirmLabel: "Deactivate",
           tone: "danger",
         },
+        "delete-user": {
+          title: "Delete user?",
+          message: `Are you sure you want to permanently delete "${confirmAction.user?.name}"? This cannot be undone.`,
+          confirmLabel: "Delete",
+          tone: "danger",
+        },
       }[confirmAction.type]
     : {}
 
@@ -314,6 +376,10 @@ export default function Admin() {
 
     if (confirmAction.type === "deactivate-user") {
       await deactivateUser(confirmAction.user.id)
+    }
+
+    if (confirmAction.type === "delete-user") {
+      await deleteUser(confirmAction.user.id)
     }
 
     setConfirmAction(null)
@@ -447,7 +513,7 @@ export default function Admin() {
         </div>
       </div>
 
-      <main style={{ flex: 1, padding: "40px" }}>
+      <main style={{ flex: 1, padding: "40px", overflowX: "hidden", maxWidth: "100%" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
           <div>
             <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 10px" }}>
@@ -462,13 +528,27 @@ export default function Admin() {
           </div>
 
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <button
-              onClick={exportPDF}
-              style={{ padding: "10px 14px", backgroundColor: colors.accent, color: "#fff", border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
-            >
-              Export PDF
-            </button>
-            <NotificationBell />
+            {activePage === "dashboard" && (
+              <button
+                onClick={exportPDF}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 18px",
+                  background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                }}
+              >
+                Export PDF
+              </button>
+            )}
+            <NotificationBell iconColor={colors.textMain} />
           </div>
         </div>
 
@@ -489,18 +569,99 @@ export default function Admin() {
 
         {activePage === "dashboard" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "18px", marginBottom: "28px" }}>
-              {[
-                ["Total Events", totalEvents, colors.textMain],
-                ["Reservations", totalGoing, colors.accent],
-                ["Total Capacity", totalCapacity, colors.green],
-                ["Pending Review", pendingReviewCount, "#f59e0b"],
-              ].map(([label, value, color]) => (
-                <div key={label} style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "22px" }}>
-                  <p style={{ color: colors.textMuted, fontSize: "12px", margin: "0 0 8px" }}>{label}</p>
-                  <h2 style={{ color, margin: 0 }}>{value}</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "16px", marginBottom: "28px" }}>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle value={totalEvents} max={totalEvents || 1} label="Total Events" color={colors.accent} colors={colors} />
+              </div>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle value={events.filter(e => e.status === "upcoming").length} max={totalEvents || 1} label="Active Events" color={colors.green} colors={colors} />
+              </div>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle value={pendingReviewCount} max={totalEvents || 1} label="Pending Review" color="#f59e0b" colors={colors} />
+              </div>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle
+                  value={`${totalCapacity > 0 ? Math.round((totalGoing / totalCapacity) * 100) : 0}%`}
+                  max={100}
+                  percent={totalCapacity > 0 ? (totalGoing / totalCapacity) * 100 : 0}
+                  label="Capacity Filled"
+                  color={colors.accentSecondary}
+                  colors={colors}
+                />
+              </div>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle value={fullyBookedCount} max={totalEvents || 1} label="Fully Booked" color={colors.error} colors={colors} />
+              </div>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
+                <ProgressCircle value={users.length} max={users.length || 1} label="Total Users" color="#06b6d4" colors={colors} />
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px", marginBottom: "24px" }}>
+              <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "700", margin: "0 0 20px" }}>
+                Turnout per Event
+              </h3>
+
+              {stats.turnout.length === 0 ? (
+                <p style={{ color: colors.textMuted, textAlign: "center", padding: "40px" }}>No event data yet.</p>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <div style={{ width: `${Math.max(stats.turnout.length * 90, 600)}px`, height: "300px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.turnout}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+                        <XAxis dataKey="title" stroke={colors.textMuted} fontSize={11} angle={-35} textAnchor="end" height={70} />
+                        <YAxis stroke={colors.textMuted} fontSize={11} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: "8px" }}
+                          labelStyle={{ color: colors.textMain }}
+                        />
+                        <Bar dataKey="going" fill={colors.accent} name="Reservations" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="capacity" fill={colors.accentSecondary} name="Capacity" radius={[6, 6, 0, 0]} opacity={0.4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              ))}
+              )}
+            </div>
+
+            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px", marginBottom: "24px" }}>
+              <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "700", margin: "0 0 20px" }}>
+                Top 5 Most Popular Events
+              </h3>
+
+              {stats.popular_events.length === 0 ? (
+                <p style={{ color: colors.textMuted, textAlign: "center", padding: "20px" }}>No reservation data yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {stats.popular_events.map((event, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <div style={{
+                        width: "28px", height: "28px", borderRadius: "50%",
+                        background: `linear-gradient(135deg, ${colors.accent}, ${colors.accentSecondary})`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "12px", fontWeight: "800", color: "#fff", flexShrink: 0,
+                      }}>
+                        {i + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: colors.textMain, fontSize: "14px", fontWeight: "600", margin: "0 0 4px" }}>{event.title}</p>
+                        <div style={{ width: "100%", height: "6px", backgroundColor: colors.border, borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${event.capacity > 0 ? Math.min((event.going / event.capacity) * 100, 100) : (event.going > 0 ? 100 : 0)}%`,
+                            background: `linear-gradient(90deg, ${colors.accent}, ${colors.accentSecondary})`,
+                            borderRadius: "3px",
+                          }} />
+                        </div>
+                      </div>
+                      <span style={{ color: colors.textMuted, fontSize: "13px", fontWeight: "600", flexShrink: 0 }}>
+                        {event.going}{event.capacity > 0 ? ` / ${event.capacity}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px" }}>
@@ -529,23 +690,39 @@ export default function Admin() {
         )}
 
         {activePage === "events" && (
-          loadingEvents ? (
-            <p style={{ color: colors.textMuted }}>Loading...</p>
-          ) : events.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
-              <p style={{ color: colors.textMuted }}>No events found.</p>
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+              {[
+                { label: "Total Events", value: events.length, color: colors.accent },
+                { label: "Pending Review", value: pendingReviewCount, color: "#f59e0b" },
+                { label: "Active Events", value: events.filter(e => e.status === "upcoming").length, color: colors.green },
+                { label: "Cancelled", value: history.filter(e => e.status === "cancelled").length, color: colors.error },
+              ].map(stat => (
+                <div key={stat.label} style={{ backgroundColor: colors.cardBg, padding: "20px", borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+                  <p style={{ fontSize: "24px", fontWeight: "800", color: stat.color, margin: "0 0 4px" }}>{stat.value}</p>
+                  <p style={{ fontSize: "12px", color: colors.textMuted, margin: 0 }}>{stat.label}</p>
+                </div>
+              ))}
             </div>
-          ) : (
-            <EventsTable
-              events={events}
-              colors={colors}
-              eventStatusInfo={eventStatusInfo}
-              onApproveRequest={event => setConfirmAction({ type: "approve-event", event })}
-              onRejectRequest={event => setConfirmAction({ type: "reject-event", event })}
-              onCancel={event => setConfirmAction({ type: "cancel-event", event })}
-              onDelete={(event, fromHistory = false) => setConfirmAction({ type: "delete-event", event, fromHistory })}
-            />
-          )
+
+            {loadingEvents ? (
+              <p style={{ color: colors.textMuted }}>Loading...</p>
+            ) : events.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+                <p style={{ color: colors.textMuted }}>No events found.</p>
+              </div>
+            ) : (
+              <EventsTable
+                events={events}
+                colors={colors}
+                eventStatusInfo={eventStatusInfo}
+                onApproveRequest={event => setConfirmAction({ type: "approve-event", event })}
+                onRejectRequest={event => setConfirmAction({ type: "reject-event", event })}
+                onCancel={event => setConfirmAction({ type: "cancel-event", event })}
+                onDelete={(event, fromHistory = false) => setConfirmAction({ type: "delete-event", event, fromHistory })}
+              />
+            )}
+          </>
         )}
 
         {activePage === "history" && (
@@ -567,80 +744,101 @@ export default function Admin() {
         )}
 
         {activePage === "users" && (
-          loadingUsers ? (
-            <p style={{ color: colors.textMuted }}>Loading users...</p>
-          ) : users.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
-              <Users size={40} color={colors.textMuted} style={{ marginBottom: "12px" }} />
-              <p style={{ color: colors.textMuted }}>No users found.</p>
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+              {[
+                { label: "Total Users", value: users.length, color: colors.accent },
+                { label: "Active Users", value: users.filter(u => u.is_approved).length, color: colors.green },
+                { label: "Deactivated", value: users.filter(u => !u.is_approved).length, color: colors.error },
+                { label: "Admins", value: users.filter(u => u.role === "admin").length, color: colors.accentSecondary },
+              ].map(stat => (
+                <div key={stat.label} style={{ backgroundColor: colors.cardBg, padding: "20px", borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+                  <p style={{ fontSize: "24px", fontWeight: "800", color: stat.color, margin: "0 0 4px" }}>{stat.value}</p>
+                  <p style={{ fontSize: "12px", color: colors.textMuted, margin: 0 }}>{stat.label}</p>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                    {["User", "Email", "Role", "Status", "Actions"].map(h => (
-                      <th key={h} style={{ padding: "16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
 
-                <tbody>
-                  {users.map(user => {
-                    const rc = roleColor(user.role)
+            {loadingUsers ? (
+              <p style={{ color: colors.textMuted }}>Loading users...</p>
+            ) : users.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+                <Users size={40} color={colors.textMuted} style={{ marginBottom: "12px" }} />
+                <p style={{ color: colors.textMuted }}>No users found.</p>
+              </div>
+            ) : (
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                      {["User", "Email", "Role", "Status", "Actions"].map(h => (
+                        <th key={h} style={{ padding: "16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: colors.textMuted }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
 
-                    return (
-                      <tr key={user.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                        <td style={{ padding: "16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: colors.accent + "22", border: `1px solid ${colors.accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: colors.accent, flexShrink: 0 }}>
-                              {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  <tbody>
+                    {users.map(user => {
+                      const rc = roleColor(user.role)
+
+                      return (
+                        <tr key={user.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                          <td style={{ padding: "16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: colors.accent + "22", border: `1px solid ${colors.accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "700", color: colors.accent, flexShrink: 0 }}>
+                                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                              </div>
+                              <span style={{ color: colors.textMain, fontSize: "14px", fontWeight: "600" }}>{user.name || "No Name"}</span>
                             </div>
-                            <span style={{ color: colors.textMain, fontSize: "14px", fontWeight: "600" }}>{user.name || "No Name"}</span>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td style={{ padding: "16px", color: colors.textMuted, fontSize: "14px" }}>{user.email}</td>
+                          <td style={{ padding: "16px", color: colors.textMuted, fontSize: "14px" }}>{user.email}</td>
 
-                        <td style={{ padding: "16px" }}>
-                          <span style={{ fontSize: "12px", padding: "3px 10px", borderRadius: "12px", backgroundColor: rc.bg, color: rc.color, border: `1px solid ${rc.border}`, fontWeight: "600" }}>
-                            {user.role}
-                          </span>
-                        </td>
+                          <td style={{ padding: "16px" }}>
+                            <span style={{ fontSize: "12px", padding: "3px 10px", borderRadius: "12px", backgroundColor: rc.bg, color: rc.color, border: `1px solid ${rc.border}`, fontWeight: "600" }}>
+                              {user.role}
+                            </span>
+                          </td>
 
-                        <td style={{ padding: "16px" }}>
-                          <span style={{
-                            fontSize: "12px",
-                            padding: "3px 10px",
-                            borderRadius: "12px",
-                            fontWeight: "600",
-                            backgroundColor: user.is_approved ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-                            color: user.is_approved ? colors.green : colors.error,
-                          }}>
-                            {user.is_approved ? "Active" : "Deactivated"}
-                          </span>
-                        </td>
+                          <td style={{ padding: "16px" }}>
+                            <span style={{
+                              fontSize: "12px",
+                              padding: "3px 10px",
+                              borderRadius: "12px",
+                              fontWeight: "600",
+                              backgroundColor: user.is_approved ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                              color: user.is_approved ? colors.green : colors.error,
+                            }}>
+                              {user.is_approved ? "Active" : "Deactivated"}
+                            </span>
+                          </td>
 
-                        <td style={{ padding: "16px" }}>
-                          {user.role !== "admin" && (
-                            user.is_approved ? (
-                              <button onClick={() => setConfirmAction({ type: "deactivate-user", user })} style={{ padding: "6px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
-                                <UserX size={13} /> Deactivate
-                              </button>
-                            ) : (
-                              <button onClick={() => activateUser(user.id)} style={{ padding: "6px 12px", backgroundColor: "rgba(16,185,129,0.15)", color: colors.green, border: "1px solid rgba(16,185,129,0.3)", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
-                                <UserCheck size={13} /> Activate
-                              </button>
-                            )
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )
+                          <td style={{ padding: "16px" }}>
+                            {user.role !== "admin" && (
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                {user.is_approved ? (
+                                  <button onClick={() => setConfirmAction({ type: "deactivate-user", user })} style={{ padding: "6px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                                    <UserX size={13} /> Deactivate
+                                  </button>
+                                ) : (
+                                  <button onClick={() => activateUser(user.id)} style={{ padding: "6px 12px", backgroundColor: "rgba(16,185,129,0.15)", color: colors.green, border: "1px solid rgba(16,185,129,0.3)", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                                    <UserCheck size={13} /> Activate
+                                  </button>
+                                )}
+                                <button onClick={() => setConfirmAction({ type: "delete-user", user })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", backgroundColor: "transparent", color: colors.error, border: `1px solid ${colors.error}`, borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+                                  <Trash2 size={13} /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </main>
 

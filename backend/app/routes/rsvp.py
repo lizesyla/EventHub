@@ -133,6 +133,7 @@ def create_rsvp(
                 db.add(rsvp)
 
             db.flush()
+
             new_count = get_going_count(db, event_id)
             if event.capacity is not None and new_count > event.capacity:
                 db.rollback()
@@ -146,6 +147,22 @@ def create_rsvp(
                 ))
 
             db.commit()
+
+            send_email(
+                current_user.email,
+                "EventHub RSVP Confirmation",
+                f"""Hello {current_user.name},
+
+Your RSVP has been confirmed successfully.
+
+Event: {event.title}
+Date: {event.date_time}
+Location: {event.location}
+
+Thank you,
+EventHub Team"""
+            )
+
         except IntegrityError:
             db.rollback()
             raise HTTPException(status_code=409, detail="You have already reserved a spot for this event.")
