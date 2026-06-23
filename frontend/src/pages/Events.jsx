@@ -174,8 +174,13 @@ export default function Events() {
     } catch {
       showMessage(eventId, "Could not connect to the server.", "warn")
     } finally {
-      setReservationLoading(null)
-      setCancelTarget(null)
+        setReservationLoading(null)
+        setCancelTarget(null)
+        const headers = token ? { Authorization: `Bearer ${token}` } : {}
+        fetch("http://localhost:8000/api/events", { headers })
+          .then(res => res.json())
+          .then(data => setEvents(Array.isArray(data) ? data : []))
+          .catch(() => {})
     }
   }
 

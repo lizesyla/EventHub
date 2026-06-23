@@ -187,21 +187,34 @@ def cancel_rsvp(
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")
 
-        # Promovo të parin nga waitlist nëse ka vend
         next_in_waitlist = db.query(Waitlist).filter(
             Waitlist.event_id == event_id,
         ).order_by(Waitlist.joined_at.asc()).first()
 
         if next_in_waitlist:
-            promoted_rsvp = RSVP(
-                event_id=event_id,
+            existing_rsvp = db.query(RSVP).filter(
+                RSVP.event_id == event_id,
+                RSVP.user_id == next_in_waitlist.user_id,
+            ).first()
+
+            if existing_rsvp:
+                existing_rsvp.status = "going"
+                existing_rsvp.cancelled_at = None
+            else:
+                promoted_rsvp = RSVP(
+                    event_id=event_id,
+                    user_id=next_in_waitlist.user_id,
+                    status="going",
+                )
+                db.add(promoted_rsvp)
+
+            db.add(Notification(
                 user_id=next_in_waitlist.user_id,
-                status="going",
-            )
-            db.add(promoted_rsvp)
+                message=f"A spot opened up! You have been added to '{event.title}'.",
+                type="waitlist_promoted",
+            ))
             db.delete(next_in_waitlist)
             db.commit()
-            # TODO: dërgo email notifikim tek user i promovuar
 
         going_count = get_going_count(db, event_id)
 
@@ -274,6 +287,8 @@ def get_guest_list(
         "total_guests": len(guests),
         "guests": guests,
     }
+
+
 @router.get("/{event_id}/waitlist-status")
 def get_waitlist_status(
     event_id: int,
@@ -295,6 +310,7 @@ def get_waitlist_status(
 
     return {"on_waitlist": True, "waitlist_position": position}
 
+
 @router.delete("/{event_id}/waitlist/leave")
 def leave_waitlist(
     event_id: int,
@@ -313,3 +329,4 @@ def leave_waitlist(
     db.commit()
 
     return {"message": "You have been removed from the waitlist."}
+    
