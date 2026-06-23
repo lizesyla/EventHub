@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { apiFetch, apiUrl } from "../lib/api"
 import { Bell, X, Check } from "lucide-react"
 
 export default function NotificationBell({ iconColor = "#ffffff" }) {
@@ -28,7 +29,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }, [])
 
   function fetchNotifications() {
-    fetch("http://localhost:8000/api/notifications", {
+    fetch(apiUrl("/api/notifications"), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -37,7 +38,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   function fetchUnreadCount() {
-    fetch("http://localhost:8000/api/notifications/unread-count", {
+    fetch(apiUrl("/api/notifications/unread-count"), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -54,27 +55,24 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function markAsRead(id) {
-    await fetch(`http://localhost:8000/api/notifications/${id}/read`, {
+    await apiFetch(`/api/notifications/${id}/read`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` }
     })
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
     fetchUnreadCount()
   }
 
   async function markAllAsRead() {
-    await fetch("http://localhost:8000/api/notifications/mark-all-read", {
+    await apiFetch("/api/notifications/mark-all-read", {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` }
     })
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
 
   async function deleteNotification(id) {
-    await fetch(`http://localhost:8000/api/notifications/${id}`, {
+    await apiFetch(`/api/notifications/${id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
     })
     setNotifications(prev => prev.filter(n => n.id !== id))
     fetchUnreadCount()

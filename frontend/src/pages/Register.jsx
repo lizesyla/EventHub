@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { apiFetch } from "../lib/api"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
@@ -39,10 +40,11 @@ export default function Register() {
       return
     }
 
-    const res = await fetch("http://localhost:8000/api/auth/register", {
+    const res = await apiFetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role: "attendee" }),
+      skipAuth: true,
     })
     const data = await res.json().catch(() => ({}))
 

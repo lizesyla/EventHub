@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { apiUrl, resolveMediaUrl } from "../lib/api"
 import { useEffect, useRef, useState } from "react"
 import {
   ArrowLeft,
@@ -48,7 +49,7 @@ export default function Home() {
   const carouselRef = useRef(null)
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events")
+    fetch(apiUrl("/api/events"))
       .then(res => res.json())
       .then(data => {
         setEvents(Array.isArray(data) ? data : [])
@@ -280,7 +281,7 @@ export default function Home() {
               {events.map(event => (
                 <div key={event.id} className="carousel-item card-hover" style={{ backgroundColor: "#f8fafc", borderRadius: "20px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
                   {event.banner_url ? (
-                    <img src={event.banner_url} alt={`${event.title} banner`} style={{ width: "100%", height: "200px", objectFit: "cover" }} />
+                    <img src={resolveMediaUrl(event.banner_url)} alt={`${event.title} banner`} style={{ width: "100%", height: "200px", objectFit: "cover" }} />
                   ) : (
                     <div style={{ width: "100%", height: "200px", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <CalendarDays size={54} color="#fff" />

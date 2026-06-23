@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { apiFetch } from "../lib/api"
 import { Link } from "react-router-dom"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
@@ -60,10 +61,11 @@ export default function Login({ onLogin }) {
     setIsSubmitting(true)
 
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
+      const res = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password }),
+        skipAuth: true,
       })
 
       const contentType = res.headers.get("content-type") || ""

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { useState } from 'react'
+import { logoutUser } from './lib/api'
 import './App.css'
 import Profile from './pages/Profile'
 import CreateEvent from './pages/CreateEvent'
@@ -34,10 +35,8 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("token"))
   const [role, setRole] = useState(parseRole())
 
-  function handleLogout() {
-    localStorage.removeItem("token")
-    localStorage.removeItem("refresh_token")
-    localStorage.removeItem("user")
+  async function handleLogout() {
+    await logoutUser()
     setToken(null)
     setRole(null)
     window.location.href = "/"

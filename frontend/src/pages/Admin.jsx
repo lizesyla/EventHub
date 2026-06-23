@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { apiFetch, apiUrl } from "../lib/api"
 import { Link } from "react-router-dom"
 import {
   LayoutDashboard,
@@ -98,30 +99,30 @@ export default function Admin() {
   const headers = { Authorization: `Bearer ${token}` }
 
   function fetchAll() {
-    fetch("http://localhost:8000/api/events", { headers })
+    fetch(apiUrl("/api/events"), { headers })
       .then(r => r.json())
       .then(data => setEvents(Array.isArray(data) ? data : []))
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false))
 
-    fetch("http://localhost:8000/api/events/history", { headers })
+    fetch(apiUrl("/api/events/history"), { headers })
       .then(r => r.json())
       .then(data => setHistory(Array.isArray(data) ? data : []))
       .catch(() => setHistory([]))
       .finally(() => setLoadingHistory(false))
 
-    fetch("http://localhost:8000/api/admin/users", { headers })
+    fetch(apiUrl("/api/admin/users"), { headers })
       .then(r => r.json())
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .catch(() => setUsers([]))
       .finally(() => setLoadingUsers(false))
 
-    fetch("http://localhost:8000/api/admin/stats", { headers })
+    fetch(apiUrl("/api/admin/stats"), { headers })
       .then(r => r.json())
       .then(data => setStats(data || { turnout: [], popular_events: [] }))
       .catch(() => setStats({ turnout: [], popular_events: [] }))
 
-    fetch("http://localhost:8000/api/admin/rsvp-trends", { headers })
+    fetch(apiUrl("/api/admin/rsvp-trends"), { headers })
       .then(r => r.json())
       .then(data => setTrends(Array.isArray(data) ? data : []))
       .catch(() => setTrends([]))
@@ -138,9 +139,8 @@ export default function Admin() {
   }
 
   async function approveEvent(eventId) {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/approve`, {
+    const res = await apiFetch(`/api/events/${eventId}/approve`, {
       method: "PATCH",
-      headers,
     })
 
     if (res.ok) {
@@ -151,9 +151,8 @@ export default function Admin() {
   }
 
   async function rejectEvent(eventId) {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/reject`, {
+    const res = await apiFetch(`/api/events/${eventId}/reject`, {
       method: "PATCH",
-      headers,
     })
 
     if (res.ok) {
@@ -166,9 +165,8 @@ export default function Admin() {
   }
 
   async function cancelEvent(eventId) {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/cancel`, {
+    const res = await apiFetch(`/api/events/${eventId}/cancel`, {
       method: "PATCH",
-      headers,
     })
 
     if (res.ok) {
@@ -181,9 +179,8 @@ export default function Admin() {
   }
 
   async function deleteEvent(eventId, fromHistory = false) {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}`, {
+    const res = await apiFetch(`/api/events/${eventId}`, {
       method: "DELETE",
-      headers,
     })
 
     if (res.ok) {
@@ -198,9 +195,8 @@ export default function Admin() {
   }
 
   async function activateUser(userId) {
-    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/approve`, {
+    const res = await apiFetch(`/api/admin/users/${userId}/approve`, {
       method: "PATCH",
-      headers,
     })
 
     if (res.ok) {
@@ -210,9 +206,8 @@ export default function Admin() {
   }
 
   async function deactivateUser(userId) {
-    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}/deactivate`, {
+    const res = await apiFetch(`/api/admin/users/${userId}/deactivate`, {
       method: "PATCH",
-      headers,
     })
 
     if (res.ok) {
@@ -222,9 +217,8 @@ export default function Admin() {
   }
 
   async function deleteUser(userId) {
-    const res = await fetch(`http://localhost:8000/api/admin/users/${userId}`, {
+    const res = await apiFetch(`/api/admin/users/${userId}`, {
       method: "DELETE",
-      headers,
     })
 
     if (res.ok) {

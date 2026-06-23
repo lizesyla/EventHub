@@ -29,7 +29,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         name=body.name.strip(),
         email=body.email,
         password_hash=hash_password(body.password),
-        role=body.role,
+        role="attendee",
         is_approved=True,
     )
     db.add(user)

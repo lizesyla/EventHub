@@ -5,6 +5,7 @@ import shutil
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.middleware.auth import get_current_user, get_current_user_optional
 from app.models.event import Event
@@ -123,7 +124,7 @@ async def create_event(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(banner.file, buffer)
 
-        banner_url = f"http://localhost:8000/{file_path.replace(os.sep, '/')}"
+        banner_url = f"{settings.public_api_url}/{file_path.replace(os.sep, '/')}"
 
     status = "upcoming" if current_user.role == "admin" else "pending"
     pending_reason = None if current_user.role == "admin" else "new"

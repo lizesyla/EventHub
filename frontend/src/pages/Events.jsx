@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { apiFetch, apiUrl, resolveMediaUrl } from "../lib/api"
 import { useEffect, useState } from "react"
 import { CalendarDays, Info, MapPin, Ticket } from "lucide-react"
 import ConfirmModal from "../components/ConfirmModal"
@@ -63,7 +64,7 @@ function EventBanner({ event }) {
   if (event.banner_url && !hasError) {
     return (
       <img
-        src={event.banner_url}
+        src={resolveMediaUrl(event.banner_url)}
         alt={`${event.title} banner`}
         onError={() => setHasError(true)}
         style={{ width: "100%", height: "200px", objectFit: "cover", display: "block" }}
@@ -90,7 +91,7 @@ export default function Events() {
 
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    fetch("http://localhost:8000/api/events", { headers })
+    fetch(apiUrl("/api/events"), { headers })
       .then(res => res.json())
       .then(data => {
         setEvents(Array.isArray(data) ? data : [])
@@ -117,7 +118,7 @@ export default function Events() {
 
     setReservationLoading(eventId)
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${eventId}/rsvp`, {
+      const res = await apiFetch(`/api/events/${eventId}/rsvp`, {
         method: alreadyReserved ? "DELETE" : "POST",
         headers: { Authorization: `Bearer ${token}` },
       })

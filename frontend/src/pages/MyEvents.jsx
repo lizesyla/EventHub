@@ -1,3 +1,4 @@
+import { apiFetch, apiUrl, resolveMediaUrl } from "../lib/api"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { CalendarDays, Edit3, MapPin, Users } from "lucide-react"
@@ -63,7 +64,7 @@ function EventBanner({ event }) {
   if (event.banner_url && !hasError) {
     return (
       <img
-        src={event.banner_url}
+        src={resolveMediaUrl(event.banner_url)}
         alt={`${event.title} banner`}
         onError={() => setHasError(true)}
         style={{ width: "100%", height: "180px", objectFit: "cover", display: "block" }}
@@ -96,7 +97,7 @@ export default function MyEvents() {
   const token = localStorage.getItem("token")
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events/mine", {
+    fetch(apiUrl("/api/events/mine"), {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())
@@ -155,9 +156,8 @@ export default function MyEvents() {
     formData.append("capacity", editForm.capacity)
 
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}`, {
+      const res = await apiFetch(`/api/events/${event.id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
       const data = await res.json().catch(() => ({}))
@@ -186,9 +186,8 @@ export default function MyEvents() {
   async function cancelEvent() {
     if (!cancelTarget) return
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${cancelTarget.id}/cancel`, {
+      const res = await apiFetch(`/api/events/${cancelTarget.id}/cancel`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
 
@@ -212,9 +211,8 @@ export default function MyEvents() {
   async function archiveEvent() {
     if (!archiveTarget) return
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${archiveTarget.id}/archive`, {
+      const res = await apiFetch(`/api/events/${archiveTarget.id}/archive`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
 
@@ -239,9 +237,7 @@ export default function MyEvents() {
     setLoadingGuests(true)
 
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}/guests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await apiFetch(`/api/events/${event.id}/guests`)
       const data = await res.json().catch(() => ({}))
       setGuests(res.ok && Array.isArray(data.guests) ? data.guests : [])
       if (!res.ok) showMessage(data.detail || "Could not load guest list.")

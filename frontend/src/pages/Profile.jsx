@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { apiFetch, apiUrl } from "../lib/api"
 import { Eye, EyeOff, Lock, Shield, User } from "lucide-react"
 
 const colors = {
@@ -86,7 +87,7 @@ export default function Profile() {
   const strength = getStrength(newPassword)
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/profile/me", { headers })
+    fetch(apiUrl("/api/profile/me"), { headers })
       .then(res => res.json())
       .then(data => {
         setProfile(data)
@@ -112,9 +113,9 @@ export default function Profile() {
 
   async function handleSave() {
     setSaveMsg("")
-    const res = await fetch("http://localhost:8000/api/profile/me", {
+    const res = await apiFetch("/api/profile/me", {
       method: "PUT",
-      headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     })
     if (res.ok) {
@@ -144,9 +145,9 @@ export default function Profile() {
       return
     }
 
-    const res = await fetch("http://localhost:8000/api/profile/me/password", {
+    const res = await apiFetch("/api/profile/me/password", {
       method: "PUT",
-      headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
     })
     const data = await res.json().catch(() => ({}))
