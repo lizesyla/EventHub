@@ -1,18 +1,23 @@
+import os
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import declarative_base, sessionmaker
+
+from sqlalchemy import create_engine, text  # pyright: ignore[reportMissingImports]
+from sqlalchemy.engine import make_url  # pyright: ignore[reportMissingImports]
+from sqlalchemy.orm import declarative_base, sessionmaker  # pyright: ignore[reportMissingImports]
+
 from app.config import settings
+
 
 def prepare_database_url(url: str) -> str:
     """Ensure SSL is enabled and correct dialect driver is specified for PostgreSQL."""
     if not url:
         return url
-        
+
     parsed = urlparse(url)
     if not parsed.scheme.startswith("postgres"):
         return url
 
-    # 1. SQLAlchemy 2.0 kërkon specifikisht 'postgresql+psycopg2://' në vend të 'postgresql://'
+    # SQLAlchemy 2.0 kërkon specifikisht 'postgresql+psycopg2://'
     scheme = "postgresql+psycopg2"
 
     hostname = parsed.hostname or ""
@@ -22,14 +27,27 @@ def prepare_database_url(url: str) -> str:
     if not is_local and "sslmode" not in query:
         query["sslmode"] = ["require"]
 
-    normalized_query = urlencode({key: values[0] for key, values in query.items()})
+    normalized_query = urlencode(
+        {key: values[0] for key, values in query.items()}
+    )
     return urlunparse(parsed._replace(scheme=scheme, query=normalized_query))
 
 
-DATABASE_URL = prepare_database_url(settings.DATABASE_URL)
+# 1. Përgatit URL-në fillestare
+raw_url = prepare_database_url(settings.DATABASE_URL)
 
+# 2. Konverto në objekt URL të SQLAlchemy për të pastruar pgbouncer
+parsed_url = make_url(raw_url)
+query_params = dict(parsed_url.query)
+
+if "pgbouncer" in query_params:
+    del query_params["pgbouncer"]
+
+clean_url = parsed_url._replace(query=query_params)
+
+# 3. Krijimi i Engine me URL-në e pastruar plotësisht
 engine = create_engine(
-    DATABASE_URL,
+    clean_url,
     pool_pre_ping=True,
 )
 
