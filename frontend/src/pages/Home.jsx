@@ -48,7 +48,7 @@ export default function Home() {
   const carouselRef = useRef(null)
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events")
+    fetch("https://eventhub-backend-8gd6.onrender.com/api/events")
       .then(res => res.json())
       .then(data => {
         setEvents(Array.isArray(data) ? data : [])

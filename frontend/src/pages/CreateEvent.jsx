@@ -77,7 +77,7 @@ function CreateEvent() {
     if (banner) formData.append('banner', banner)
 
     try {
-      const response = await fetch('http://localhost:8000/api/events', {
+      const response = await fetch('https://eventhub-backend-8gd6.onrender.com//api/events', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

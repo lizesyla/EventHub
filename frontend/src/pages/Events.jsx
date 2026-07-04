@@ -91,7 +91,7 @@ export default function Events() {
 
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    fetch("http://localhost:8000/api/events", { headers })
+    fetch("https://eventhub-backend-8gd6.onrender.com//api/events", { headers })
       .then(res => res.json())
       .then(data => {
         setEvents(Array.isArray(data) ? data : [])
@@ -104,7 +104,7 @@ export default function Events() {
   if (!token || events.length === 0) return
   events.forEach(async (event) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}/waitlist-status`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com//api/events/${event.id}/waitlist-status`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
@@ -135,7 +135,7 @@ export default function Events() {
 
     setReservationLoading(eventId)
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${eventId}/rsvp`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/rsvp`, {
         method: alreadyReserved ? "DELETE" : "POST",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -177,7 +177,7 @@ export default function Events() {
         setReservationLoading(null)
         setCancelTarget(null)
         const headers = token ? { Authorization: `Bearer ${token}` } : {}
-        fetch("http://localhost:8000/api/events", { headers })
+        fetch("https://eventhub-backend-8gd6.onrender.com/api/events", { headers })
           .then(res => res.json())
           .then(data => setEvents(Array.isArray(data) ? data : []))
           .catch(() => {})
@@ -191,7 +191,7 @@ export default function Events() {
     }
     setReservationLoading(eventId)
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${eventId}/rsvp`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/rsvp`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -212,7 +212,7 @@ export default function Events() {
   async function handleLeaveWaitlist(eventId) {
   setReservationLoading(eventId)
   try {
-    const res = await fetch(`http://localhost:8000/api/events/${eventId}/waitlist/leave`, {
+    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/waitlist/leave`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })

@@ -28,7 +28,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }, [])
 
   function fetchNotifications() {
-    fetch("http://localhost:8000/api/notifications", {
+    fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -37,7 +37,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   function fetchUnreadCount() {
-    fetch("http://localhost:8000/api/notifications/unread-count", {
+    fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications/unread-count", {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -54,7 +54,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function markAsRead(id) {
-    await fetch(`http://localhost:8000/api/notifications/${id}/read`, {
+    await fetch(`https://eventhub-backend-8gd6.onrender.com/api/notifications/${id}/read`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -63,7 +63,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function markAllAsRead() {
-    await fetch("http://localhost:8000/api/notifications/mark-all-read", {
+    await fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications/mark-all-read", {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -72,7 +72,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function deleteNotification(id) {
-    await fetch(`http://localhost:8000/api/notifications/${id}`, {
+    await fetch(`https://eventhub-backend-8gd6.onrender.com/api/notifications/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     })

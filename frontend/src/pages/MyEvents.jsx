@@ -96,7 +96,7 @@ export default function MyEvents() {
   const token = localStorage.getItem("token")
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/events/mine", {
+    fetch("https://eventhub-backend-8gd6.onrender.com/api/events/mine", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())
@@ -155,7 +155,7 @@ export default function MyEvents() {
     formData.append("capacity", editForm.capacity)
 
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${event.id}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -186,7 +186,7 @@ export default function MyEvents() {
   async function cancelEvent() {
     if (!cancelTarget) return
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${cancelTarget.id}/cancel`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${cancelTarget.id}/cancel`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -212,7 +212,7 @@ export default function MyEvents() {
   async function archiveEvent() {
     if (!archiveTarget) return
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${archiveTarget.id}/archive`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${archiveTarget.id}/archive`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -239,7 +239,7 @@ export default function MyEvents() {
     setLoadingGuests(true)
 
     try {
-      const res = await fetch(`http://localhost:8000/api/events/${event.id}/guests`, {
+      const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${event.id}/guests`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
