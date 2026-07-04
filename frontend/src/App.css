@@ -182,3 +182,136 @@
     border-right-color: var(--border);
   }
 }
+/* =========================
+   MOBILE RESPONSIVE FIXES
+   EventHub
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  body {
+    font-size: 15px;
+  }
+
+  h1 {
+    font-size: 30px !important;
+  }
+
+  h2 {
+    font-size: 26px !important;
+  }
+
+  h3 {
+    font-size: 18px !important;
+  }
+
+  div {
+    max-width: 100%;
+  }
+}
+
+/* Phone */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* krejt container-at mos me dal jashtë ekranit */
+  div {
+    max-width: 100% !important;
+  }
+
+  /* grids bëhen 1 kolonë */
+  [style*="grid-template-columns"],
+  [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* flex rows bëhen column */
+  [style*="display: flex"],
+  [style*="display:flex"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* forms/cards */
+  form,
+  article,
+  section {
+    width: 100% !important;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    width: 100%;
+    max-width: 100%;
+    font-size: 14px !important;
+  }
+
+  button {
+    min-height: 44px;
+  }
+
+  /* spacing */
+  .page,
+  main,
+  body > div {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  /* event cards */
+  article {
+    margin-bottom: 16px;
+  }
+
+  /* buttons inside cards */
+  article button {
+    width: 100% !important;
+    margin-bottom: 8px;
+  }
+
+  /* images */
+  img {
+    height: auto !important;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 26px !important;
+  }
+
+  h2 {
+    font-size: 22px !important;
+  }
+
+  p {
+    font-size: 13px !important;
+  }
+
+  button,
+  a {
+    font-size: 14px !important;
+  }
+
+  input,
+  textarea {
+    padding: 11px !important;
+  }
+}
