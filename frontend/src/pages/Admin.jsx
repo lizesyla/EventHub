@@ -94,6 +94,19 @@ export default function Admin() {
   const [stats, setStats] = useState({ turnout: [], popular_events: [] })
   const [trends, setTrends] = useState([])
   const [confirmAction, setConfirmAction] = useState(null)
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200)
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  const isMobile = windowWidth <= 768
+  const isTablet = windowWidth > 768 && windowWidth <= 1100
+  const statGridColumns = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)"
+  const dashboardGridColumns = isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(6, 1fr)"
 
   const token = localStorage.getItem("token")
   const headers = { Authorization: `Bearer ${token}` }
@@ -387,21 +400,23 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", fontFamily: "'Inter', sans-serif", display: "flex" }}>
+    <div style={{ backgroundColor: colors.bgDark, minHeight: "100vh", fontFamily: "'Inter', sans-serif", display: "flex", flexDirection: isMobile ? "column" : "row" }}>
       <div style={{
-        width: "240px",
+        width: isMobile ? "100%" : "240px",
         background: isDarkMode
           ? `linear-gradient(180deg, ${colors.cardBg} 0%, #1a0f28 100%)`
           : `linear-gradient(180deg, #fdf2f8 0%, #fce7f3 100%)`,
-        borderRight: `1px solid ${colors.border}`,
-        padding: "28px 16px",
+        borderRight: isMobile ? "none" : `1px solid ${colors.border}`,
+        borderBottom: isMobile ? `1px solid ${colors.border}` : "none",
+        padding: isMobile ? "16px 12px" : "28px 16px",
         display: "flex",
         flexDirection: "column",
-        minHeight: "100vh",
-        position: "sticky",
+        minHeight: isMobile ? "auto" : "100vh",
+        position: isMobile ? "relative" : "sticky",
         top: 0,
+        zIndex: 20,
       }}>
-        <div style={{ marginBottom: "32px", paddingLeft: "8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div style={{ marginBottom: isMobile ? "14px" : "32px", paddingLeft: "8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
           <div>
             <h2 style={{ color: colors.textMain, fontSize: "18px", fontWeight: "800", margin: 0 }}>
               Event<span style={{ color: colors.accent }}>Hub</span>
@@ -436,7 +451,7 @@ export default function Admin() {
           </button>
         </div>
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+        <nav style={{ display: "flex", flexDirection: isMobile ? "row" : "column", gap: "4px", flex: 1, overflowX: isMobile ? "auto" : "visible", paddingBottom: isMobile ? "4px" : 0 }}>
           {[
             { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
             { id: "events", icon: Calendar, label: "Events" },
@@ -464,6 +479,7 @@ export default function Admin() {
                   cursor: "pointer",
                   textAlign: "left",
                   transition: "all 0.15s",
+                  flexShrink: 0,
                 }}
               >
                 <Icon size={16} />
@@ -473,7 +489,7 @@ export default function Admin() {
           })}
         </nav>
 
-        <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: "12px", marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: "12px", marginTop: "12px", display: "flex", flexDirection: isMobile ? "row" : "column", gap: "4px", flexWrap: "wrap" }}>
           <Link to="/create-event" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "8px", color: colors.textMuted, fontSize: "14px", fontWeight: "600", textDecoration: "none" }}>
             <Calendar size={16} />
             Create Event
@@ -514,13 +530,13 @@ export default function Admin() {
         </div>
       </div>
 
-      <main style={{ flex: 1, padding: "40px", overflowX: "hidden", maxWidth: "100%" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+      <main style={{ flex: 1, padding: isMobile ? "20px 14px" : "40px", overflowX: "hidden", maxWidth: "100%", minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", gap: "16px", marginBottom: "32px" }}>
           <div>
             <p style={{ color: colors.accent, fontSize: "12px", fontWeight: "700", letterSpacing: "3px", textTransform: "uppercase", margin: "0 0 10px" }}>
               ADMIN
             </p>
-            <h1 style={{ color: colors.textMain, fontSize: "34px", fontWeight: "800", margin: "0 0 8px" }}>
+            <h1 style={{ color: colors.textMain, fontSize: isMobile ? "26px" : "34px", fontWeight: "800", margin: "0 0 8px" }}>
               {pageInfo[activePage].title}
             </h1>
             <p style={{ color: colors.textMuted, fontSize: "15px", margin: 0 }}>
@@ -528,7 +544,7 @@ export default function Admin() {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-start", flexWrap: "wrap" }}>
             {activePage === "dashboard" && (
               <button
                 onClick={exportPDF}
@@ -570,7 +586,7 @@ export default function Admin() {
 
         {activePage === "dashboard" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "16px", marginBottom: "28px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: dashboardGridColumns, gap: "16px", marginBottom: "28px" }}>
               <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "16px" }}>
                 <ProgressCircle value={totalEvents} max={totalEvents || 1} label="Total Events" color={colors.accent} colors={colors} />
               </div>
@@ -598,13 +614,13 @@ export default function Admin() {
               </div>
             </div>
 
-            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px", marginBottom: "24px" }}>
+            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: isMobile ? "16px" : "24px", marginBottom: "24px" }}>
               <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "700", margin: "0 0 20px" }}>
                 Turnout per Event
               </h3>
 
               {stats.turnout.length === 0 ? (
-                <p style={{ color: colors.textMuted, textAlign: "center", padding: "40px" }}>No event data yet.</p>
+                <p style={{ color: colors.textMuted, textAlign: "center", padding: isMobile ? "28px 16px" : "40px" }}>No event data yet.</p>
               ) : (
                 <div style={{ overflowX: "auto" }}>
                   <div style={{ width: `${Math.max(stats.turnout.length * 90, 600)}px`, height: "300px" }}>
@@ -626,7 +642,7 @@ export default function Admin() {
               )}
             </div>
 
-            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px", marginBottom: "24px" }}>
+            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: isMobile ? "16px" : "24px", marginBottom: "24px" }}>
               <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "700", margin: "0 0 20px" }}>
                 Top 5 Most Popular Events
               </h3>
@@ -665,13 +681,13 @@ export default function Admin() {
               )}
             </div>
 
-            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: "24px" }}>
+            <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, padding: isMobile ? "16px" : "24px" }}>
               <h3 style={{ color: colors.textMain, fontSize: "16px", fontWeight: "700", margin: "0 0 20px" }}>
                 Reservation Trends Over Time
               </h3>
 
               {trends.length === 0 ? (
-                <p style={{ color: colors.textMuted, textAlign: "center", padding: "40px" }}>No reservation activity yet.</p>
+                <p style={{ color: colors.textMuted, textAlign: "center", padding: isMobile ? "28px 16px" : "40px" }}>No reservation activity yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={trends}>
@@ -692,7 +708,7 @@ export default function Admin() {
 
         {activePage === "events" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: statGridColumns, gap: "16px", marginBottom: "24px" }}>
               {[
                 { label: "Total Events", value: events.length, color: colors.accent },
                 { label: "Pending Review", value: pendingReviewCount, color: "#f59e0b" },
@@ -709,7 +725,7 @@ export default function Admin() {
             {loadingEvents ? (
               <p style={{ color: colors.textMuted }}>Loading...</p>
             ) : events.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+              <div style={{ textAlign: "center", padding: isMobile ? "32px 16px" : "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
                 <p style={{ color: colors.textMuted }}>No events found.</p>
               </div>
             ) : (
@@ -730,7 +746,7 @@ export default function Admin() {
           loadingHistory ? (
             <p style={{ color: colors.textMuted }}>Loading...</p>
           ) : history.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+            <div style={{ textAlign: "center", padding: isMobile ? "28px 16px" : "40px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
               <p style={{ color: colors.textMuted }}>No past events yet.</p>
             </div>
           ) : (
@@ -746,7 +762,7 @@ export default function Admin() {
 
         {activePage === "users" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: statGridColumns, gap: "16px", marginBottom: "24px" }}>
               {[
                 { label: "Total Users", value: users.length, color: colors.accent },
                 { label: "Active Users", value: users.filter(u => u.is_approved).length, color: colors.green },
@@ -763,13 +779,13 @@ export default function Admin() {
             {loadingUsers ? (
               <p style={{ color: colors.textMuted }}>Loading users...</p>
             ) : users.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
+              <div style={{ textAlign: "center", padding: isMobile ? "32px 16px" : "60px", backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}` }}>
                 <Users size={40} color={colors.textMuted} style={{ marginBottom: "12px" }} />
                 <p style={{ color: colors.textMuted }}>No users found.</p>
               </div>
             ) : (
-              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
                       {["User", "Email", "Role", "Status", "Actions"].map(h => (
@@ -858,8 +874,8 @@ export default function Admin() {
 
 function EventsTable({ events, colors, eventStatusInfo, onApproveRequest, onRejectRequest, onCancel, onDelete, history = false }) {
   return (
-    <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+    <div style={{ backgroundColor: colors.cardBg, borderRadius: "16px", border: `1px solid ${colors.border}`, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
             {["Event", "Location", "Date", "Status", "Actions"].map(header => (
