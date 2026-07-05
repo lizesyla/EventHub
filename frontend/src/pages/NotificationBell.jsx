@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Bell, X, Check } from "lucide-react"
+import { API_BASE_URL } from "../config/api";
 
 export default function NotificationBell({ iconColor = "#ffffff" }) {
   const [notifications, setNotifications] = useState([])
@@ -28,7 +29,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }, [])
 
   function fetchNotifications() {
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications", {
+    fetch(`${API_BASE_URL}/api/notifications`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -37,7 +38,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   function fetchUnreadCount() {
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications/unread-count", {
+    fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -54,7 +55,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function markAsRead(id) {
-    await fetch(`https://eventhub-backend-8gd6.onrender.com/api/notifications/${id}/read`, {
+    await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -63,7 +64,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function markAllAsRead() {
-    await fetch("https://eventhub-backend-8gd6.onrender.com/api/notifications/mark-all-read", {
+    await fetch(`${API_BASE_URL}/api/notifications/mark-all-read`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -72,7 +73,7 @@ export default function NotificationBell({ iconColor = "#ffffff" }) {
   }
 
   async function deleteNotification(id) {
-    await fetch(`https://eventhub-backend-8gd6.onrender.com/api/notifications/${id}`, {
+    await fetch(`${API_BASE_URL}/api/notifications/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     })

@@ -19,6 +19,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import NotificationBell from "./NotificationBell"
 import ConfirmModal from "../components/ConfirmModal"
+import { API_BASE_URL } from "../config/api";
 
 const darkColors = {
   bgDark: "#0f172a",
@@ -98,30 +99,30 @@ export default function Admin() {
   const headers = { Authorization: `Bearer ${token}` }
 
   function fetchAll() {
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/events", { headers })
+    fetch(`${API_BASE_URL}/api/events`, { headers })
       .then(r => r.json())
       .then(data => setEvents(Array.isArray(data) ? data : []))
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false))
 
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/events/history", { headers })
+    fetch(`${API_BASE_URL}/api/events/history`, { headers })
       .then(r => r.json())
       .then(data => setHistory(Array.isArray(data) ? data : []))
       .catch(() => setHistory([]))
       .finally(() => setLoadingHistory(false))
 
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/admin/users", { headers })
+    fetch(`${API_BASE_URL}/api/admin/users`, { headers })
       .then(r => r.json())
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .catch(() => setUsers([]))
       .finally(() => setLoadingUsers(false))
 
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/admin/stats", { headers })
+    fetch(`${API_BASE_URL}/api/admin/stats`, { headers })
       .then(r => r.json())
       .then(data => setStats(data || { turnout: [], popular_events: [] }))
       .catch(() => setStats({ turnout: [], popular_events: [] }))
 
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/admin/rsvp-trends", { headers })
+    fetch(`${API_BASE_URL}/api/admin/rsvp-trends`, { headers })
       .then(r => r.json())
       .then(data => setTrends(Array.isArray(data) ? data : []))
       .catch(() => setTrends([]))
@@ -138,7 +139,7 @@ export default function Admin() {
   }
 
   async function approveEvent(eventId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/approve`, {
+    const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/approve`, {
       method: "PATCH",
       headers,
     })
@@ -151,7 +152,7 @@ export default function Admin() {
   }
 
   async function rejectEvent(eventId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/reject`, {
+    const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/reject`, {
       method: "PATCH",
       headers,
     })
@@ -166,7 +167,7 @@ export default function Admin() {
   }
 
   async function cancelEvent(eventId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}/cancel`, {
+    const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/cancel`, {
       method: "PATCH",
       headers,
     })
@@ -181,7 +182,7 @@ export default function Admin() {
   }
 
   async function deleteEvent(eventId, fromHistory = false) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/events/${eventId}`, {
+    const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
       method: "DELETE",
       headers,
     })
@@ -198,7 +199,7 @@ export default function Admin() {
   }
 
   async function activateUser(userId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com/api/admin/users/${userId}/approve`, {
+    const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/approve`, {
       method: "PATCH",
       headers,
     })
@@ -210,7 +211,7 @@ export default function Admin() {
   }
 
   async function deactivateUser(userId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com//api/admin/users/${userId}/deactivate`, {
+    const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/deactivate`, {
       method: "PATCH",
       headers,
     })
@@ -222,7 +223,7 @@ export default function Admin() {
   }
 
   async function deleteUser(userId) {
-    const res = await fetch(`https://eventhub-backend-8gd6.onrender.com//api/admin/users/${userId}`, {
+    const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
       method: "DELETE",
       headers,
     })

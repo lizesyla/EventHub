@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { API_BASE_URL } from "../config/api";
 
 const colors = {
   bgDark: '#0f172a', cardBg: '#1e293b', inputBg: '#0f172a',
@@ -39,7 +40,7 @@ export default function Register() {
       return
     }
 
-    const res = await fetch("https://eventhub-backend-8gd6.onrender.com/api/auth/register", {
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role: "attendee" }),

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { API_BASE_URL } from "../config/api";
 
 const colors = {
   bgDark: "#0f172a",
@@ -60,7 +61,7 @@ export default function Login({ onLogin }) {
     setIsSubmitting(true)
 
     try {
-      const res = await fetch("https://eventhub-backend-8gd6.onrender.com/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail, password }),

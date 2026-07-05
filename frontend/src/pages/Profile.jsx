@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Eye, EyeOff, Lock, Shield, User } from "lucide-react"
+import { API_BASE_URL } from "../config/api";
 
 const colors = {
   bgDark: "#0f0c1b",
@@ -86,7 +87,7 @@ export default function Profile() {
   const strength = getStrength(newPassword)
 
   useEffect(() => {
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/profile/me", { headers })
+    fetch(`${API_BASE_URL}/api/profile/me`, { headers })
       .then(res => res.json())
       .then(data => {
         setProfile(data)
@@ -112,7 +113,7 @@ export default function Profile() {
 
   async function handleSave() {
     setSaveMsg("")
-    const res = await fetch("https://eventhub-backend-8gd6.onrender.com/api/profile/me", {
+    const res = await fetch(`${API_BASE_URL}/api/profile/me`, {
       method: "PUT",
       headers,
       body: JSON.stringify({ name }),
@@ -144,7 +145,7 @@ export default function Profile() {
       return
     }
 
-    const res = await fetch("https://eventhub-backend-8gd6.onrender.com/api/profile/me/password", {
+    const res = await fetch(`${API_BASE_URL}/api/profile/me/password`, {
       method: "PUT",
       headers,
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),

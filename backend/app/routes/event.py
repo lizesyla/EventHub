@@ -123,7 +123,7 @@ async def create_event(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(banner.file, buffer)
 
-        banner_url = f"http://localhost:8000/{file_path.replace(os.sep, '/')}"
+        banner_url = f"https://eventhub-backend-8gd6.onrender.com/{file_path.replace(os.sep, '/')}"
 
     status = "upcoming" if current_user.role == "admin" else "pending"
     pending_reason = None if current_user.role == "admin" else "new"

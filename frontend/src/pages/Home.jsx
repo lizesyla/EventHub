@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react"
 import HeroSection from "./HeroSection"
+import { API_BASE_URL } from "../config/api";
 
 const eventTypeCards = [
   { Icon: Utensils, label: "Lunch & Learn", sub: "Knowledge sharing", bg: "linear-gradient(135deg, #4f46e5, #7c3aed)" },
@@ -48,7 +49,7 @@ export default function Home() {
   const carouselRef = useRef(null)
 
   useEffect(() => {
-    fetch("https://eventhub-backend-8gd6.onrender.com/api/events")
+    fetch(`${API_BASE_URL}/api/events`)
       .then(res => res.json())
       .then(data => {
         setEvents(Array.isArray(data) ? data : [])
